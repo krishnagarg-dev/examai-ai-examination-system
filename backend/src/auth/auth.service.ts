@@ -8,6 +8,8 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 
 import { UsersService } from '../users/users.service';
+import { UserRole } from '../users/schemas/user.schema';
+
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -33,8 +35,10 @@ export class AuthService {
     );
 
     const user = await this.usersService.create({
-      ...registerDto,
+      name: registerDto.name,
+      email: registerDto.email,
       password: hashedPassword,
+      role: UserRole.STUDENT,
     });
 
     const token = this.generateToken(

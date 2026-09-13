@@ -1,18 +1,21 @@
 "use client";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-
-
 const navItems = [
-  { icon: "⌂", label: "Dashboard", href: "/dashboard" },
-  { icon: "▣", label: "Exams", href: "/exams" },
-  { icon: "＋", label: "Create Exam", href: "/create-exam" },
-  { icon: "◉", label: "Students", href: "/students" },
-  { icon: "◉", label: "Live Proctoring", href: "/live-proctoring" },
-  { icon: "▥", label: "Results", href: "/results" },
-  { icon: "◇", label: "Analytics", href: "/analytics" },
+  { icon: "⌂", label: "Dashboard", href: "/admin/dashboard" },
+  { icon: "▣", label: "Exams", href: "/admin/exams" },
+  { icon: "＋", label: "Create Exam", href: "/admin/create-exam" },
+  { icon: "◉", label: "Students", href: "/admin/students" },
+  {
+    icon: "◉",
+    label: "Live Proctoring",
+    href: "/admin/live-proctoring",
+  },
+  { icon: "▥", label: "Results", href: "/admin/results" },
+  { icon: "◇", label: "Analytics", href: "/admin/analytics" },
 ];
 
 const exams = [
@@ -41,20 +44,48 @@ const exams = [
     status: "Completed",
   },
 ];
+
 export default function Dashboard() {
   const router = useRouter();
+
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [activeItem, setActiveItem] = useState("Dashboard");
 
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("rememberMe");
+
+    router.push("/admin/login");
+  };
+
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("examai-auth");
+    const verifyAdmin = async () => {
+      try {
+        const response = await fetch("/api/auth/me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
 
-    if (isAuthenticated !== "true") {
-      router.replace("/login");
-      return;
-    }
+        if (!response.ok) {
+          router.replace("/admin/login");
+          return;
+        }
 
-    setIsCheckingAuth(false);
+        const data = await response.json();
+
+        if (data.user?.role !== "admin") {
+          router.replace("/admin/login");
+          return;
+        }
+
+        setIsCheckingAuth(false);
+      } catch {
+        router.replace("/admin/login");
+      }
+    };
+
+    verifyAdmin();
   }, [router]);
 
   if (isCheckingAuth) {
@@ -93,10 +124,11 @@ export default function Dashboard() {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`relative flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-left text-[14px] font-medium transition-all duration-200 ${activeItem === item.label
-                  ? "bg-[#63a8b9] text-white shadow-[0_8px_20px_rgba(99,168,185,0.18)]"
-                  : "text-[#687384] hover:bg-[#f4f6f9]"
-                  }`}
+                className={`relative flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-left text-[14px] font-medium transition-all duration-200 ${
+                  activeItem === item.label
+                    ? "bg-[#63a8b9] text-white shadow-[0_8px_20px_rgba(99,168,185,0.18)]"
+                    : "text-[#687384] hover:bg-[#f4f6f9]"
+                }`}
                 onClick={() => setActiveItem(item.label)}
               >
                 <span className="text-[18px]">{item.icon}</span>
@@ -104,6 +136,7 @@ export default function Dashboard() {
               </Link>
             ))}
           </nav>
+
           {/* OTHER */}
           <div className="mt-auto">
             <div className="mb-[14px] px-[12px] text-[11px] font-bold tracking-[1.3px] text-[#8c95a4]">
@@ -112,7 +145,7 @@ export default function Dashboard() {
 
             <div className="space-y-[8px]">
               <Link
-                href="/profile"
+                href="/admin/profile"
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
                 <span className="w-[14px] text-center">◌</span>
@@ -120,14 +153,18 @@ export default function Dashboard() {
               </Link>
 
               <Link
-                href="/settings"
+                href="/admin/settings"
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
                 <span className="w-[14px] text-center">⚙</span>
                 Settings
               </Link>
 
-              <button className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#d66b75] transition hover:bg-[#fff4f5]">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#d66b75] transition hover:bg-[#fff4f5]"
+              >
                 <span className="w-[14px] text-center">↪</span>
                 Logout
               </button>
@@ -463,12 +500,13 @@ export default function Dashboard() {
                     </div>
 
                     <span
-                      className={`rounded-full px-[10px] py-[6px] text-[9px] font-bold ${exam.status === "Upcoming"
-                        ? "bg-[#eaf4ff] text-[#5798c8]"
-                        : exam.status === "Live"
-                          ? "bg-[#e6f8ef] text-[#50b37f]"
-                          : "bg-[#f0f0f4] text-[#868a98]"
-                        }`}
+                      className={`rounded-full px-[10px] py-[6px] text-[9px] font-bold ${
+                        exam.status === "Upcoming"
+                          ? "bg-[#eaf4ff] text-[#5798c8]"
+                          : exam.status === "Live"
+                            ? "bg-[#e6f8ef] text-[#50b37f]"
+                            : "bg-[#f0f0f4] text-[#868a98]"
+                      }`}
                     >
                       {exam.status}
                     </span>
@@ -562,8 +600,9 @@ function InfoBox({
       <span className="block text-[9px] text-[#8e98a6]">{title}</span>
 
       <strong
-        className={`mt-[7px] block text-[14px] ${warning ? "text-[#d29335]" : "text-[#314154]"
-          }`}
+        className={`mt-[7px] block text-[14px] ${
+          warning ? "text-[#d29335]" : "text-[#314154]"
+        }`}
       >
         {value}
       </strong>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const navItems = [
   {
@@ -61,18 +62,56 @@ export default function StudentDashboard() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [userName, setUserName] = useState("Krishna");
+
+  useEffect(() => {
+    const verifyStudent = async () => {
+      try {
+        const response = await fetch("/api/auth/student-me", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          router.replace("/student/login");
+          return;
+        }
+
+        const data = await response.json();
+
+        if (data.user?.role !== "student") {
+          router.replace("/student/login");
+          return;
+        }
+
+        setUserName(data.user?.name || "Student");
+        setIsCheckingAuth(false);
+      } catch {
+        router.replace("/student/login");
+      }
+    };
+
+    verifyStudent();
+  }, [router]);
+
   const handleLogout = () => {
-    localStorage.removeItem("examai-auth");
-    router.push("/login");
+    localStorage.removeItem("user");
+    localStorage.removeItem("rememberMe");
+
+    router.push("/student/login");
   };
+
+  if (isCheckingAuth) {
+    return null;
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#263446]">
       <div className="flex min-h-screen">
-
         {/* SIDEBAR */}
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
-
           {/* BRAND */}
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
             <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
@@ -136,6 +175,7 @@ export default function StudentDashboard() {
               </Link>
 
               <button
+                type="button"
                 onClick={handleLogout}
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#d66b75] transition hover:bg-[#fff4f5]"
               >
@@ -148,7 +188,6 @@ export default function StudentDashboard() {
 
         {/* MAIN CONTENT */}
         <section className="flex-1 p-[38px]">
-
           {/* TOP HEADER */}
           <div className="mb-[34px] flex items-center justify-between">
             <div>
@@ -157,7 +196,7 @@ export default function StudentDashboard() {
               </p>
 
               <h1 className="text-[30px] font-bold text-[#263446]">
-                Welcome back, Krishna! 👋
+                Welcome back, {userName}! 👋
               </h1>
 
               <p className="mt-[8px] text-[14px] text-[#7d8796]">
@@ -177,14 +216,18 @@ export default function StudentDashboard() {
               </div>
 
               <div className="flex h-[48px] w-[48px] items-center justify-center rounded-full bg-[#263446] text-[14px] font-bold text-white">
-                KG
+                {userName
+                  .split(" ")
+                  .map((word) => word[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase()}
               </div>
             </div>
           </div>
 
           {/* STATS */}
           <div className="grid grid-cols-1 gap-[20px] md:grid-cols-2 xl:grid-cols-4">
-
             <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[22px]">
               <p className="text-[12px] font-medium text-[#8b94a3]">
                 Upcoming Exams
@@ -245,7 +288,6 @@ export default function StudentDashboard() {
           {/* TODAY'S EXAM */}
           <div className="mt-[28px] rounded-[22px] bg-[#263446] p-[30px] text-white">
             <div className="flex flex-col justify-between gap-[25px] lg:flex-row lg:items-center">
-
               <div>
                 <span className="rounded-full bg-white/10 px-[12px] py-[6px] text-[11px] font-semibold tracking-[1px]">
                   UPCOMING EXAM
@@ -277,7 +319,6 @@ export default function StudentDashboard() {
 
           {/* BOTTOM GRID */}
           <div className="mt-[28px] grid grid-cols-1 gap-[24px] xl:grid-cols-[1.4fr_1fr]">
-
             {/* UPCOMING EXAMS */}
             <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[26px]">
               <div className="mb-[22px] flex items-center justify-between">
