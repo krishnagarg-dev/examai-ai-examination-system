@@ -7,11 +7,9 @@ import {
   ArrowLeft,
   BookOpen,
   CalendarDays,
-  Check,
   ChevronDown,
   Clock3,
   FileText,
-  GraduationCap,
   Plus,
   Save,
   Settings2,
@@ -34,12 +32,125 @@ export default function CreateExamPage() {
   const [proctoring, setProctoring] = useState(true);
   const [camera, setCamera] = useState(true);
   const [tabSwitch, setTabSwitch] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    alert("Exam created successfully!");
-    router.push("/teacher/exams");
+    if (submitting) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+
+      const form = e.currentTarget;
+      const formData = new FormData(form);
+
+      const title = String(formData.get("title") || "").trim();
+      const code = String(formData.get("code") || "").trim();
+      const department = String(
+        formData.get("department") || "",
+      ).trim();
+      const semester = String(
+        formData.get("semester") || "",
+      ).trim();
+      const examDate = String(
+        formData.get("examDate") || "",
+      ).trim();
+      const startTime = String(
+        formData.get("startTime") || "",
+      ).trim();
+      const duration = Number(formData.get("duration") || 0);
+      const totalMarks = Number(
+        formData.get("totalMarks") || 0,
+      );
+      const totalQuestions = Number(
+        formData.get("totalQuestions") || 0,
+      );
+      const instructions = String(
+        formData.get("instructions") || "",
+      ).trim();
+
+      if (
+        !title ||
+        !code ||
+        !department ||
+        !semester ||
+        !examDate ||
+        !startTime ||
+        duration <= 0 ||
+        totalMarks <= 0 ||
+        totalQuestions <= 0
+      ) {
+        alert("Please fill all required examination details.");
+        setSubmitting(false);
+        return;
+      }
+
+      const startDateTime = new Date(
+        `${examDate}T${startTime}:00`,
+      );
+
+      if (Number.isNaN(startDateTime.getTime())) {
+        alert("Invalid examination date or time.");
+        setSubmitting(false);
+        return;
+      }
+
+      const endDateTime = new Date(
+        startDateTime.getTime() + duration * 60 * 1000,
+      );
+
+      const payload = {
+        title,
+        code,
+        subject: title,
+        description:
+          instructions ||
+          `${department} examination - ${semester}`,
+        duration,
+        totalMarks,
+        startTime: startDateTime.toISOString(),
+        endTime: endDateTime.toISOString(),
+        status: "scheduled",
+        totalQuestions,
+        proctoringEnabled: proctoring,
+        cameraMonitoring: camera,
+        tabSwitchDetection: tabSwitch,
+      };
+
+      const response = await fetch("/api/exams", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Failed to create examination.",
+        );
+      }
+
+      alert("Exam created successfully!");
+
+      router.push("/teacher/exams");
+      router.refresh();
+    } catch (error) {
+      console.error("Create exam error:", error);
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to create examination.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleLogout = () => {
@@ -111,6 +222,7 @@ export default function CreateExamPage() {
               </Link>
 
               <button
+                type="button"
                 onClick={handleLogout}
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-left text-[14px] font-medium text-[#d66b75] hover:bg-[#fff4f5]"
               >
@@ -126,6 +238,7 @@ export default function CreateExamPage() {
 
           {/* HEADER */}
           <div className="flex flex-col justify-between gap-[20px] xl:flex-row xl:items-center">
+
             <div className="flex items-start gap-[16px]">
               <Link
                 href="/teacher/exams"
@@ -169,6 +282,7 @@ export default function CreateExamPage() {
 
                 {/* BASIC DETAILS */}
                 <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[27px]">
+
                   <div className="flex items-center gap-[12px]">
                     <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
                       <FileText size={20} />
@@ -192,6 +306,7 @@ export default function CreateExamPage() {
                       <input
                         required
                         type="text"
+                        name="title"
                         placeholder="e.g. Data Structures & Algorithms"
                       />
                     </div>
@@ -201,6 +316,7 @@ export default function CreateExamPage() {
                       <input
                         required
                         type="text"
+                        name="code"
                         placeholder="e.g. MCA-301"
                       />
                     </div>
@@ -209,11 +325,13 @@ export default function CreateExamPage() {
                       <label>Department</label>
 
                       <div className="select-wrapper">
-                        <select required>
-                          <option value="">Select Department</option>
-                          <option>MCA</option>
-                          <option>BCA</option>
-                          <option>B.Tech</option>
+                        <select required name="department">
+                          <option value="">
+                            Select Department
+                          </option>
+                          <option value="MCA">MCA</option>
+                          <option value="BCA">BCA</option>
+                          <option value="B.Tech">B.Tech</option>
                         </select>
 
                         <ChevronDown size={17} />
@@ -224,12 +342,22 @@ export default function CreateExamPage() {
                       <label>Semester</label>
 
                       <div className="select-wrapper">
-                        <select required>
-                          <option value="">Select Semester</option>
-                          <option>Semester 1</option>
-                          <option>Semester 2</option>
-                          <option>Semester 3</option>
-                          <option>Semester 4</option>
+                        <select required name="semester">
+                          <option value="">
+                            Select Semester
+                          </option>
+                          <option value="Semester 1">
+                            Semester 1
+                          </option>
+                          <option value="Semester 2">
+                            Semester 2
+                          </option>
+                          <option value="Semester 3">
+                            Semester 3
+                          </option>
+                          <option value="Semester 4">
+                            Semester 4
+                          </option>
                         </select>
 
                         <ChevronDown size={17} />
@@ -238,12 +366,20 @@ export default function CreateExamPage() {
 
                     <div className="field">
                       <label>Examination Date</label>
-                      <input required type="date" />
+                      <input
+                        required
+                        type="date"
+                        name="examDate"
+                      />
                     </div>
 
                     <div className="field">
                       <label>Start Time</label>
-                      <input required type="time" />
+                      <input
+                        required
+                        type="time"
+                        name="startTime"
+                      />
                     </div>
 
                   </div>
@@ -272,17 +408,35 @@ export default function CreateExamPage() {
 
                     <div className="field">
                       <label>Duration (Minutes)</label>
-                      <input required type="number" placeholder="120" />
+                      <input
+                        required
+                        type="number"
+                        name="duration"
+                        min="1"
+                        placeholder="120"
+                      />
                     </div>
 
                     <div className="field">
                       <label>Total Marks</label>
-                      <input required type="number" placeholder="100" />
+                      <input
+                        required
+                        type="number"
+                        name="totalMarks"
+                        min="1"
+                        placeholder="100"
+                      />
                     </div>
 
                     <div className="field">
                       <label>Total Questions</label>
-                      <input required type="number" placeholder="50" />
+                      <input
+                        required
+                        type="number"
+                        name="totalQuestions"
+                        min="1"
+                        placeholder="50"
+                      />
                     </div>
 
                   </div>
@@ -308,9 +462,11 @@ export default function CreateExamPage() {
                   </div>
 
                   <textarea
+                    name="instructions"
                     className="mt-[24px] min-h-[150px] w-full resize-none rounded-[14px] border border-[#e1e5eb] p-[15px] text-[13px] outline-none placeholder:text-[#a1a8b3] focus:border-[#63a8b9]"
                     placeholder="Enter examination instructions..."
                   />
+
                 </div>
 
               </div>
@@ -328,9 +484,16 @@ export default function CreateExamPage() {
                   <div className="mt-[22px] space-y-[18px]">
 
                     <div className="flex items-center gap-[12px]">
-                      <CalendarDays size={18} className="text-[#63a8b9]" />
+                      <CalendarDays
+                        size={18}
+                        className="text-[#63a8b9]"
+                      />
+
                       <div>
-                        <p className="text-[11px] text-[#8b94a3]">Date</p>
+                        <p className="text-[11px] text-[#8b94a3]">
+                          Date
+                        </p>
+
                         <p className="mt-[2px] text-[13px] font-semibold">
                           Select examination date
                         </p>
@@ -338,9 +501,16 @@ export default function CreateExamPage() {
                     </div>
 
                     <div className="flex items-center gap-[12px]">
-                      <Clock3 size={18} className="text-[#63a8b9]" />
+                      <Clock3
+                        size={18}
+                        className="text-[#63a8b9]"
+                      />
+
                       <div>
-                        <p className="text-[11px] text-[#8b94a3]">Duration</p>
+                        <p className="text-[11px] text-[#8b94a3]">
+                          Duration
+                        </p>
+
                         <p className="mt-[2px] text-[13px] font-semibold">
                           Configure duration
                         </p>
@@ -348,9 +518,16 @@ export default function CreateExamPage() {
                     </div>
 
                     <div className="flex items-center gap-[12px]">
-                      <Users size={18} className="text-[#63a8b9]" />
+                      <Users
+                        size={18}
+                        className="text-[#63a8b9]"
+                      />
+
                       <div>
-                        <p className="text-[11px] text-[#8b94a3]">Students</p>
+                        <p className="text-[11px] text-[#8b94a3]">
+                          Students
+                        </p>
+
                         <p className="mt-[2px] text-[13px] font-semibold">
                           Students can be assigned later
                         </p>
@@ -390,7 +567,9 @@ export default function CreateExamPage() {
                       <button
                         type="button"
                         onClick={() => setProctoring(!proctoring)}
-                        className={`toggle ${proctoring ? "active" : ""}`}
+                        className={`toggle ${
+                          proctoring ? "active" : ""
+                        }`}
                       >
                         <span />
                       </button>
@@ -405,7 +584,9 @@ export default function CreateExamPage() {
                       <button
                         type="button"
                         onClick={() => setCamera(!camera)}
-                        className={`toggle ${camera ? "active" : ""}`}
+                        className={`toggle ${
+                          camera ? "active" : ""
+                        }`}
                       >
                         <span />
                       </button>
@@ -420,7 +601,9 @@ export default function CreateExamPage() {
                       <button
                         type="button"
                         onClick={() => setTabSwitch(!tabSwitch)}
-                        className={`toggle ${tabSwitch ? "active" : ""}`}
+                        className={`toggle ${
+                          tabSwitch ? "active" : ""
+                        }`}
                       >
                         <span />
                       </button>
@@ -432,10 +615,17 @@ export default function CreateExamPage() {
                 {/* CREATE BUTTON */}
                 <button
                   type="submit"
-                  className="flex w-full items-center justify-center gap-[8px] rounded-[14px] bg-[#63a8b9] py-[14px] text-[13px] font-semibold text-white shadow-[0_10px_25px_rgba(99,168,185,0.22)] transition hover:opacity-90"
+                  disabled={submitting}
+                  className={`flex w-full items-center justify-center gap-[8px] rounded-[14px] bg-[#63a8b9] py-[14px] text-[13px] font-semibold text-white shadow-[0_10px_25px_rgba(99,168,185,0.22)] transition ${
+                    submitting
+                      ? "cursor-not-allowed opacity-60"
+                      : "hover:opacity-90"
+                  }`}
                 >
                   <Plus size={18} />
-                  Create Examination
+                  {submitting
+                    ? "Creating Examination..."
+                    : "Create Examination"}
                 </button>
 
               </div>
