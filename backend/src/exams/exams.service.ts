@@ -73,12 +73,24 @@ export class ExamsService {
     id: string;
     role: string;
   }) {
-    const filter =
-      user.role === "admin"
-        ? {}
-        : {
-            createdBy: user.id,
-          };
+    let filter: Record<string, unknown>;
+
+    if (user.role === "admin") {
+      // Admin can see all exams.
+      filter = {};
+    } else if (user.role === "student") {
+      // Students can see scheduled and live exams.
+      filter = {
+        status: {
+          $in: ["scheduled", "live"],
+        },
+      };
+    } else {
+      // Teachers can see only exams created by them.
+      filter = {
+        createdBy: user.id,
+      };
+    }
 
     return this.examModel
       .find(filter)

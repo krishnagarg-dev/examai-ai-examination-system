@@ -8,9 +8,6 @@ import {
 } from "@nestjs/common";
 
 import { ExamsService } from "./exams.service";
-// Reuse the service method's input type so the controller and service stay in sync.
-type CreateExamDto = Parameters<ExamsService["create"]>[0];
-
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
@@ -25,8 +22,8 @@ export class ExamsController {
 
   @Post()
   @Roles("admin", "teacher")
-  create(
-    @Body() createExamDto: CreateExamDto,
+  async create(
+    @Body() createExamDto: any,
     @CurrentUser() user: any,
   ) {
     return this.examsService.create(
@@ -36,14 +33,14 @@ export class ExamsController {
   }
 
   @Get()
-  @Roles("admin", "teacher")
-  findAll(@CurrentUser() user: any) {
+  @Roles("admin", "teacher", "student")
+  async findAll(@CurrentUser() user: any) {
     return this.examsService.findAll(user);
   }
 
   @Get(":id")
-  @Roles("admin", "teacher")
-  findOne(@Param("id") id: string) {
+  @Roles("admin", "teacher", "student")
+  async findOne(@Param("id") id: string) {
     return this.examsService.findOne(id);
   }
 }
