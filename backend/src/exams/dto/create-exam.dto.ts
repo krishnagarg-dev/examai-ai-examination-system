@@ -1,27 +1,25 @@
 import {
   IsDateString,
-  IsEnum,
+  IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Min,
-} from 'class-validator';
-
-import { ExamStatus } from '../schemas/exam.schema';
+} from "class-validator";
 
 export class CreateExamDto {
   @IsString()
   @IsNotEmpty()
-  title: string;
+  title!: string;
 
   @IsString()
   @IsNotEmpty()
-  code: string;
+  code!: string;
 
   @IsString()
   @IsNotEmpty()
-  subject: string;
+  subject!: string;
 
   @IsOptional()
   @IsString()
@@ -29,19 +27,19 @@ export class CreateExamDto {
 
   @IsNumber()
   @Min(1)
-  duration: number;
+  duration!: number;
 
   @IsNumber()
   @Min(1)
-  totalMarks: number;
+  totalMarks!: number;
 
   @IsDateString()
-  startTime: string;
+  startTime!: string;
 
   @IsDateString()
-  endTime: string;
+  endTime!: string;
 
   @IsOptional()
-  @IsEnum(ExamStatus)
-  status?: ExamStatus;
+  @IsIn(["scheduled", "live", "completed"])
+  status?: string;
 }

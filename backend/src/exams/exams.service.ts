@@ -1,13 +1,19 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
-  BadRequestException,
 } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { Model } from "mongoose";
 
 import { Exam, ExamDocument } from "./schemas/exam.schema";
-import { CreateExamDto } from "./dto/create-exam.dto";
+
+type CreateExamDto = {
+  code: string;
+  startTime: string | Date;
+  endTime: string | Date;
+  [key: string]: unknown;
+};
 
 @Injectable()
 export class ExamsService {
@@ -20,8 +26,12 @@ export class ExamsService {
     createExamDto: CreateExamDto,
     userId: string,
   ) {
+    const normalizedCode = createExamDto.code
+      .trim()
+      .toUpperCase();
+
     const existingExam = await this.examModel.findOne({
-      code: createExamDto.code.toUpperCase(),
+      code: normalizedCode,
     });
 
     if (existingExam) {
@@ -30,11 +40,29 @@ export class ExamsService {
       );
     }
 
+    const startTime = new Date(createExamDto.startTime);
+    const endTime = new Date(createExamDto.endTime);
+
+    if (
+      Number.isNaN(startTime.getTime()) ||
+      Number.isNaN(endTime.getTime())
+    ) {
+      throw new BadRequestException(
+        "Invalid examination date or time",
+      );
+    }
+
+    if (endTime <= startTime) {
+      throw new BadRequestException(
+        "End time must be after start time",
+      );
+    }
+
     const exam = new this.examModel({
       ...createExamDto,
-      code: createExamDto.code.toUpperCase(),
-      startTime: new Date(createExamDto.startTime),
-      endTime: new Date(createExamDto.endTime),
+      code: normalizedCode,
+      startTime,
+      endTime,
       createdBy: userId,
     });
 

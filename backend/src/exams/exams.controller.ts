@@ -8,7 +8,8 @@ import {
 } from "@nestjs/common";
 
 import { ExamsService } from "./exams.service";
-import { CreateExamDto } from "./dto/create-exam.dto";
+// Reuse the service method's input type so the controller and service stay in sync.
+type CreateExamDto = Parameters<ExamsService["create"]>[0];
 
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
