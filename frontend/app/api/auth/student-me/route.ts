@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const backendResponse = await fetch(
-      "http://127.0.0.1:5000/auth/me",
+      `${process.env.BACKEND_URL}/auth/me`,
       {
         method: "GET",
         headers: {

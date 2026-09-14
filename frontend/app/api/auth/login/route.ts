@@ -5,7 +5,7 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const backendResponse = await fetch(
-      "http://localhost:5000/auth/login",
+      `${process.env.BACKEND_URL}/auth/login`,
       {
         method: "POST",
         headers: {
