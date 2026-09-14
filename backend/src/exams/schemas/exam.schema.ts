@@ -1,13 +1,13 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
+import { HydratedDocument, Types } from "mongoose";
 
 export type ExamDocument = HydratedDocument<Exam>;
 
 export enum ExamStatus {
-  DRAFT = 'draft',
-  SCHEDULED = 'scheduled',
-  LIVE = 'live',
-  COMPLETED = 'completed',
+  DRAFT = "draft",
+  SCHEDULED = "scheduled",
+  LIVE = "live",
+  COMPLETED = "completed",
 }
 
 @Schema({ timestamps: true })
@@ -16,7 +16,7 @@ export class Exam {
     required: true,
     trim: true,
   })
-  title: string;
+  title!: string;
 
   @Prop({
     required: true,
@@ -24,13 +24,13 @@ export class Exam {
     uppercase: true,
     trim: true,
   })
-  code: string;
+  code!: string;
 
   @Prop({
     required: true,
     trim: true,
   })
-  subject: string;
+  subject!: string;
 
   @Prop({
     trim: true,
@@ -41,37 +41,37 @@ export class Exam {
     required: true,
     min: 1,
   })
-  duration: number;
+  duration!: number;
 
   @Prop({
     required: true,
     min: 1,
   })
-  totalMarks: number;
+  totalMarks!: number;
 
   @Prop({
     required: true,
   })
-  startTime: Date;
+  startTime!: Date;
 
   @Prop({
     required: true,
   })
-  endTime: Date;
+  endTime!: Date;
 
   @Prop({
     type: String,
     enum: Object.values(ExamStatus),
     default: ExamStatus.DRAFT,
   })
-  status: ExamStatus;
+  status!: ExamStatus;
 
   @Prop({
     type: Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true,
   })
-  createdBy: Types.ObjectId;
+  createdBy!: Types.ObjectId;
 }
 
 export const ExamSchema = SchemaFactory.createForClass(Exam);
