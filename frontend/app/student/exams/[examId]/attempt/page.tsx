@@ -9,38 +9,24 @@ import {
   FilesetResolver,
 } from "@mediapipe/tasks-vision";
 
-const questions = [
-  {
-    id: 1,
-    question: "Which SQL command is used to retrieve data from a database?",
-    options: ["GET", "SELECT", "FETCH", "RETRIEVE"],
-  },
-  {
-    id: 2,
-    question: "Which of the following is a primary key?",
-    options: [
-      "A field that contains duplicate values",
-      "A field that uniquely identifies each record",
-      "A field used only for sorting",
-      "A field containing only text",
-    ],
-  },
-  {
-    id: 3,
-    question: "Which normal form removes partial dependency?",
-    options: ["1NF", "2NF", "3NF", "BCNF"],
-  },
-  {
-    id: 4,
-    question: "Which SQL clause is used to filter records?",
-    options: ["ORDER BY", "WHERE", "GROUP BY", "HAVING"],
-  },
-  {
-    id: 5,
-    question: "Which command is used to remove a table from a database?",
-    options: ["DELETE", "REMOVE", "DROP", "TRUNCATE"],
-  },
-];
+type Exam = {
+  _id: string;
+  title: string;
+  code: string;
+  subject?: string;
+  description?: string;
+  duration: number;
+  totalMarks: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+};
+
+type Question = {
+  id: number;
+  question: string;
+  options: string[];
+};
 
 type FaceBox = {
   x: number;
@@ -63,23 +49,79 @@ type ObjectBox = {
   score: number;
 };
 
+const fallbackQuestions: Question[] = [
+  {
+    id: 1,
+    question:
+      "Which technology is primarily used to provide on-demand computing resources over the internet?",
+    options: [
+      "Cloud Computing",
+      "Operating Systems",
+      "Compiler Design",
+      "Data Structures",
+    ],
+  },
+  {
+    id: 2,
+    question:
+      "Which cloud service model provides virtual machines, storage and networking?",
+    options: ["SaaS", "PaaS", "IaaS", "DBaaS"],
+  },
+  {
+    id: 3,
+    question:
+      "Which cloud deployment model is dedicated to a single organization?",
+    options: [
+      "Public Cloud",
+      "Private Cloud",
+      "Hybrid Cloud",
+      "Community Internet",
+    ],
+  },
+  {
+    id: 4,
+    question:
+      "Which characteristic allows cloud resources to increase or decrease based on demand?",
+    options: [
+      "Elasticity",
+      "Encryption",
+      "Virtualization",
+      "Authentication",
+    ],
+  },
+  {
+    id: 5,
+    question:
+      "Which of the following is an example of a cloud storage service?",
+    options: [
+      "Amazon S3",
+      "HTML",
+      "JavaScript",
+      "CSS",
+    ],
+  },
+];
+
 export default function ExamAttemptPage() {
   const params = useParams();
   const router = useRouter();
 
   const examId = params.examId as string;
 
-  const STUDENT_NAME = "Krishna Garg";
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  const faceLandmarkerRef =
+    useRef<FaceLandmarker | null>(null);
+
+  const objectDetectorRef =
+    useRef<cocoSsd.ObjectDetection | null>(null);
 
   const detectionIntervalRef =
     useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isDetectingRef = useRef(false);
   const terminatedRef = useRef(false);
-
   const activeIssuesRef = useRef<Set<string>>(new Set());
 
   const multiplePeopleFramesRef = useRef(0);
@@ -87,41 +129,111 @@ export default function ExamAttemptPage() {
   const noFaceFramesRef = useRef(0);
   const obstructionFramesRef = useRef(0);
 
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [reviewQuestions, setReviewQuestions] = useState<number[]>([]);
+  const [exam, setExam] = useState<Exam | null>(null);
+  const [questions, setQuestions] =
+    useState<Question[]>(fallbackQuestions);
+
+  const [examLoading, setExamLoading] = useState(true);
+  const [examError, setExamError] = useState("");
+
+  const [currentQuestion, setCurrentQuestion] =
+    useState(0);
+
+  const [answers, setAnswers] =
+    useState<Record<number, number>>({});
+
+  const [reviewQuestions, setReviewQuestions] =
+    useState<number[]>([]);
 
   const [violations, setViolations] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(2 * 60 * 60);
+
+  const [timeLeft, setTimeLeft] =
+    useState(2 * 60 * 60);
 
   const [cameraError, setCameraError] = useState("");
-  const [cameraActive, setCameraActive] = useState(false);
-  const [modelsLoading, setModelsLoading] = useState(true);
+  const [cameraActive, setCameraActive] =
+    useState(false);
 
-  const [faceStatus, setFaceStatus] = useState(
-    "Loading face AI..."
-  );
+  const [modelsLoading, setModelsLoading] =
+    useState(true);
 
-  const [objectStatus, setObjectStatus] = useState(
-    "Loading object AI..."
-  );
+  const [faceStatus, setFaceStatus] =
+    useState("Loading face AI...");
 
-  const [faceBox, setFaceBox] = useState<FaceBox>(null);
+  const [objectStatus, setObjectStatus] =
+    useState("Loading object AI...");
 
-  const [landmarkPoints, setLandmarkPoints] = useState<
-    LandmarkPoint[]
-  >([]);
+  const [faceBox, setFaceBox] =
+    useState<FaceBox>(null);
 
-  const [objectBoxes, setObjectBoxes] = useState<ObjectBox[]>(
-    []
-  );
+  const [landmarkPoints, setLandmarkPoints] =
+    useState<LandmarkPoint[]>([]);
+
+  const [objectBoxes, setObjectBoxes] =
+    useState<ObjectBox[]>([]);
 
   const [warning, setWarning] = useState("");
-  const [showWarning, setShowWarning] = useState(false);
-  const [examTerminated, setExamTerminated] = useState(false);
+  const [showWarning, setShowWarning] =
+    useState(false);
 
-  const question = questions[currentQuestion];
+  const [examTerminated, setExamTerminated] =
+    useState(false);
 
+  const question =
+    questions[currentQuestion] || fallbackQuestions[0];
+
+  /*
+   * LOAD REAL EXAM
+   */
+  useEffect(() => {
+    const fetchExam = async () => {
+      try {
+        setExamLoading(true);
+        setExamError("");
+
+        const response = await fetch(
+          `/api/exams/${examId}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message || "Failed to load examination",
+          );
+        }
+
+        setExam(data);
+
+        const durationSeconds =
+          Number(data.duration || 120) * 60;
+
+        setTimeLeft(durationSeconds);
+      } catch (error) {
+        console.error("Exam loading error:", error);
+
+        setExamError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load examination.",
+        );
+      } finally {
+        setExamLoading(false);
+      }
+    };
+
+    if (examId) {
+      fetchExam();
+    }
+  }, [examId]);
+
+  /*
+   * CAMERA STOP
+   */
   const stopCamera = () => {
     if (detectionIntervalRef.current) {
       clearInterval(detectionIntervalRef.current);
@@ -136,16 +248,30 @@ export default function ExamAttemptPage() {
       streamRef.current = null;
     }
 
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+
+    faceLandmarkerRef.current = null;
+    objectDetectorRef.current = null;
+
     setCameraActive(false);
   };
 
+  /*
+   * VIOLATIONS
+   */
   const addViolation = (
     message: string,
-    issueType: string
+    issueType: string,
   ) => {
-    if (terminatedRef.current) return;
+    if (terminatedRef.current) {
+      return;
+    }
 
-    if (activeIssuesRef.current.has(issueType)) {
+    if (
+      activeIssuesRef.current.has(issueType)
+    ) {
       return;
     }
 
@@ -160,7 +286,7 @@ export default function ExamAttemptPage() {
         setExamTerminated(true);
 
         setWarning(
-          "You have reached the maximum limit of 3 proctoring violations. Your examination has been terminated and will be submitted automatically."
+          "You have reached the maximum limit of 3 proctoring violations. Your examination has been terminated.",
         );
 
         setShowWarning(true);
@@ -169,7 +295,7 @@ export default function ExamAttemptPage() {
 
         setTimeout(() => {
           router.push(
-            `/student/exams/${examId}/submit`
+            `/student/exams/${examId}/submit`,
           );
         }, 4000);
       } else {
@@ -181,400 +307,557 @@ export default function ExamAttemptPage() {
     });
   };
 
-  const clearIssue = (issueType: string) => {
-    activeIssuesRef.current.delete(issueType);
+  const clearIssue = (
+    issueType: string,
+  ) => {
+    activeIssuesRef.current.delete(
+      issueType,
+    );
   };
 
-  /* CAMERA + AI PROCTORING */
+  /*
+   * CAMERA + AI
+   */
   useEffect(() => {
     let isMounted = true;
 
-    const startProctoring = async () => {
-      try {
-        setCameraError("");
-        setModelsLoading(true);
-
-        await tf.ready();
-
+    const startProctoring =
+      async () => {
         try {
-          await tf.setBackend("webgl");
-        } catch {
-          console.log("WebGL unavailable");
-        }
+          setCameraError("");
+          setModelsLoading(true);
 
-        const stream =
-          await navigator.mediaDevices.getUserMedia({
-            video: {
-              width: { ideal: 1280 },
-              height: { ideal: 720 },
-              facingMode: "user",
-            },
-            audio: true,
-          });
-
-        if (!isMounted) {
-          stream
-            .getTracks()
-            .forEach((track) => track.stop());
-
-          return;
-        }
-
-        streamRef.current = stream;
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-
-          await new Promise<void>((resolve) => {
-            if (!videoRef.current) {
-              resolve();
-              return;
-            }
-
-            videoRef.current.onloadedmetadata = () => {
-              resolve();
-            };
-          });
-
-          await videoRef.current.play();
-        }
-
-        if (!isMounted) return;
-
-        setCameraActive(true);
-
-        setFaceStatus("Loading AI face detection...");
-        setObjectStatus("Loading AI object detection...");
-
-        const objectDetector =
-          await cocoSsd.load({
-            base: "mobilenet_v2",
-          });
-
-        if (!isMounted) return;
-
-        const vision =
-          await FilesetResolver.forVisionTasks(
-            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
-          );
-
-        const faceLandmarker =
-          await FaceLandmarker.createFromOptions(
-            vision,
-            {
-              baseOptions: {
-                modelAssetPath:
-                  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-                delegate: "GPU",
+          /*
+           * CAMERA FIRST
+           */
+          const stream =
+            await navigator.mediaDevices.getUserMedia(
+              {
+                video: {
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 },
+                  facingMode: "user",
+                },
+                audio: true,
               },
+            );
 
-              runningMode: "VIDEO",
+          if (!isMounted) {
+            stream
+              .getTracks()
+              .forEach((track) =>
+                track.stop(),
+              );
+            return;
+          }
 
-              numFaces: 2,
+          streamRef.current = stream;
 
-              minFaceDetectionConfidence: 0.5,
+          const video =
+            videoRef.current;
 
-              minFacePresenceConfidence: 0.5,
+          if (!video) {
+            throw new Error(
+              "Video element is unavailable.",
+            );
+          }
 
-              minTrackingConfidence: 0.5,
+          video.srcObject = stream;
 
-              outputFaceBlendshapes: true,
-            }
+          await new Promise<void>(
+            (resolve) => {
+              if (
+                video.readyState >= 1
+              ) {
+                resolve();
+                return;
+              }
+
+              video.onloadedmetadata =
+                () => resolve();
+            },
           );
 
-        if (!isMounted) return;
+          await video.play();
 
-        setModelsLoading(false);
+          if (!isMounted) {
+            return;
+          }
 
-        setFaceStatus("Scanning for face...");
-        setObjectStatus("Scanning environment...");
+          /*
+           * CAMERA IS ACTIVE EVEN WHILE
+           * AI MODELS ARE LOADING
+           */
+          setCameraActive(true);
+          setFaceStatus(
+            "Camera active • Loading face AI...",
+          );
+          setObjectStatus(
+            "Camera active • Loading object AI...",
+          );
 
-        detectionIntervalRef.current =
-          setInterval(async () => {
-            if (
-              !videoRef.current ||
-              videoRef.current.readyState < 3 ||
-              isDetectingRef.current ||
-              terminatedRef.current
-            ) {
-              return;
-            }
+          /*
+           * INITIALIZE TFJS
+           */
+          await tf.ready();
 
-            isDetectingRef.current = true;
+          try {
+            await tf.setBackend("webgl");
+          } catch {
+            console.warn(
+              "WebGL unavailable. TensorFlow.js will use fallback backend.",
+            );
+          }
 
-            try {
-              const video = videoRef.current;
+          /*
+           * LOAD AI MODELS IN PARALLEL
+           */
+          const objectModelPromise =
+            cocoSsd.load({
+              base: "mobilenet_v2",
+            });
 
-              const now = performance.now();
+          const visionPromise =
+            FilesetResolver.forVisionTasks(
+              "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm",
+            );
 
-              /* =========================
-                 FACE LANDMARK DETECTION
-              ========================= */
+          const [
+            objectDetector,
+            vision,
+          ] = await Promise.all([
+            objectModelPromise,
+            visionPromise,
+          ]);
 
-              const faceResult =
-                faceLandmarker.detectForVideo(
-                  video,
-                  now
-                );
+          const faceLandmarker =
+            await FaceLandmarker.createFromOptions(
+              vision,
+              {
+                baseOptions: {
+                  modelAssetPath:
+                    "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+                  delegate: "GPU",
+                },
 
-              const landmarks = faceResult.faceLandmarks[0];
+                runningMode: "VIDEO",
 
-              if (landmarks && landmarks.length > 0) {
-                const videoWidth = video.videoWidth;
-                const videoHeight = video.videoHeight;
+                numFaces: 2,
 
-                const xs = landmarks.map((point) => point.x);
-                const ys = landmarks.map((point) => point.y);
+                minFaceDetectionConfidence: 0.6,
 
-                const minX = Math.min(...xs);
-                const maxX = Math.max(...xs);
-                const minY = Math.min(...ys);
-                const maxY = Math.max(...ys);
+                minFacePresenceConfidence: 0.6,
 
-                const paddingX = 0.03;
-                const paddingY = 0.05;
+                minTrackingConfidence: 0.6,
 
-                setFaceBox({
-                  x: Math.max(0, minX - paddingX),
-                  y: Math.max(0, minY - paddingY),
-                  width: Math.min(
-                    1 - Math.max(0, minX - paddingX),
-                    maxX - minX + paddingX * 2
-                  ),
-                  height: Math.min(
-                    1 - Math.max(0, minY - paddingY),
-                    maxY - minY + paddingY * 2
-                  ),
-                });
+                outputFaceBlendshapes: true,
+              },
+            );
 
-                /* Important face landmarks */
+          if (!isMounted) {
+            return;
+          }
 
-                const importantIndexes = [
-                  33,   // left eye outer
-                  133,  // left eye inner
+          objectDetectorRef.current =
+            objectDetector;
 
-                  362,  // right eye inner
-                  263,  // right eye outer
+          faceLandmarkerRef.current =
+            faceLandmarker;
 
-                  1,    // nose
+          setModelsLoading(false);
 
-                  234,  // left face side
-                  127,  // left upper side
+          setFaceStatus(
+            "AI face detection active",
+          );
 
-                  454,  // right face side
-                  356,  // right upper side
-                ];
+          setObjectStatus(
+            "AI object detection active",
+          );
 
-                const visiblePoints = importantIndexes
-                  .filter(
-                    (index) =>
-                      landmarks[index] !== undefined
-                  )
-                  .map((index) => ({
-                    x: landmarks[index].x,
-                    y: landmarks[index].y,
-                  }));
+          /*
+           * START DETECTION LOOP
+           */
+          detectionIntervalRef.current =
+            setInterval(async () => {
+              if (
+                !videoRef.current ||
+                videoRef.current.readyState <
+                  3 ||
+                isDetectingRef.current ||
+                terminatedRef.current
+              ) {
+                return;
+              }
 
-                setLandmarkPoints([...visiblePoints]);
+              const currentVideo =
+                videoRef.current;
 
-                if (visiblePoints.length < 8) {
-                  obstructionFramesRef.current += 1;
+              if (
+                !faceLandmarkerRef.current ||
+                !objectDetectorRef.current
+              ) {
+                return;
+              }
+
+              isDetectingRef.current = true;
+
+              try {
+                /*
+                 * FACE DETECTION
+                 */
+                const faceResult =
+                  faceLandmarkerRef.current.detectForVideo(
+                    currentVideo,
+                    performance.now(),
+                  );
+
+                const detectedFaces =
+                  faceResult.faceLandmarks;
+
+                const faceCount =
+                  detectedFaces.length;
+
+                if (faceCount === 0) {
+                  noFaceFramesRef.current += 1;
+
+                  setFaceBox(null);
+                  setLandmarkPoints([]);
 
                   setFaceStatus(
-                    "Face partially blocked"
+                    "No face detected",
                   );
 
                   if (
-                    obstructionFramesRef.current >= 3
+                    noFaceFramesRef.current >=
+                    3
                   ) {
                     addViolation(
-                      "Your face appears to be partially blocked. Please keep your complete face visible.",
-                      "FACE_OBSTRUCTION"
+                      "No face is visible. Please keep your face clearly visible.",
+                      "NO_FACE",
                     );
                   }
                 } else {
-                  obstructionFramesRef.current = 0;
+                  noFaceFramesRef.current = 0;
+
+                  clearIssue("NO_FACE");
+
+                  const landmarks =
+                    detectedFaces[0];
+
+                  const xs =
+                    landmarks.map(
+                      (point) => point.x,
+                    );
+
+                  const ys =
+                    landmarks.map(
+                      (point) => point.y,
+                    );
+
+                  const minX =
+                    Math.min(...xs);
+
+                  const maxX =
+                    Math.max(...xs);
+
+                  const minY =
+                    Math.min(...ys);
+
+                  const maxY =
+                    Math.max(...ys);
+
+                  const paddingX =
+                    0.03;
+
+                  const paddingY =
+                    0.05;
+
+                  setFaceBox({
+                    x: Math.max(
+                      0,
+                      minX - paddingX,
+                    ),
+
+                    y: Math.max(
+                      0,
+                      minY - paddingY,
+                    ),
+
+                    width: Math.min(
+                      1 -
+                        Math.max(
+                          0,
+                          minX -
+                            paddingX,
+                        ),
+                      maxX -
+                        minX +
+                        paddingX * 2,
+                    ),
+
+                    height: Math.min(
+                      1 -
+                        Math.max(
+                          0,
+                          minY -
+                            paddingY,
+                        ),
+                      maxY -
+                        minY +
+                        paddingY * 2,
+                    ),
+                  });
+
+                  const importantIndexes =
+                    [
+                      33,
+                      133,
+                      362,
+                      263,
+                      1,
+                      234,
+                      127,
+                      454,
+                      356,
+                    ];
+
+                  const visiblePoints =
+                    importantIndexes
+                      .filter(
+                        (index) =>
+                          landmarks[
+                            index
+                          ] !==
+                          undefined,
+                      )
+                      .map(
+                        (index) => ({
+                          x:
+                            landmarks[
+                              index
+                            ].x,
+
+                          y:
+                            landmarks[
+                              index
+                            ].y,
+                        }),
+                      );
+
+                  setLandmarkPoints(
+                    visiblePoints,
+                  );
+
+                  if (
+                    visiblePoints.length <
+                    8
+                  ) {
+                    obstructionFramesRef.current +=
+                      1;
+
+                    setFaceStatus(
+                      "Face partially blocked",
+                    );
+
+                    if (
+                      obstructionFramesRef.current >=
+                      3
+                    ) {
+                      addViolation(
+                        "Your face appears partially blocked. Keep your complete face visible.",
+                        "FACE_OBSTRUCTION",
+                      );
+                    }
+                  } else {
+                    obstructionFramesRef.current = 0;
+
+                    clearIssue(
+                      "FACE_OBSTRUCTION",
+                    );
+
+                    if (
+                      faceCount > 1
+                    ) {
+                      setFaceStatus(
+                        `${faceCount} faces detected`,
+                      );
+                    } else {
+                      setFaceStatus(
+                        "Face detected • Tracking active",
+                      );
+                    }
+                  }
+
+                  /*
+                   * MULTIPLE FACES
+                   */
+                  if (
+                    faceCount > 1
+                  ) {
+                    multiplePeopleFramesRef.current +=
+                      1;
+
+                    if (
+                      multiplePeopleFramesRef.current >=
+                      2
+                    ) {
+                      addViolation(
+                        `Multiple faces detected (${faceCount}). Only the registered student should be visible.`,
+                        "MULTIPLE_FACES",
+                      );
+                    }
+                  } else {
+                    multiplePeopleFramesRef.current = 0;
+
+                    clearIssue(
+                      "MULTIPLE_FACES",
+                    );
+                  }
+                }
+
+                /*
+                 * OBJECT DETECTION
+                 */
+                const objects =
+                  await objectDetectorRef.current.detect(
+                    currentVideo,
+                  );
+
+                const detectedObjectBoxes =
+                  objects
+                    .filter(
+                      (object) =>
+                        object.score >=
+                        0.45,
+                    )
+                    .map((object) => ({
+                      x:
+                        object.bbox[0] /
+                        currentVideo.videoWidth,
+
+                      y:
+                        object.bbox[1] /
+                        currentVideo.videoHeight,
+
+                      width:
+                        object.bbox[2] /
+                        currentVideo.videoWidth,
+
+                      height:
+                        object.bbox[3] /
+                        currentVideo.videoHeight,
+
+                      label:
+                        object.class,
+
+                      score:
+                        object.score,
+                    }));
+
+                setObjectBoxes(
+                  detectedObjectBoxes,
+                );
+
+                /*
+                 * PHONE DETECTION
+                 */
+                const phoneDetected =
+                  objects.some(
+                    (object) =>
+                      object.class
+                        .toLowerCase() ===
+                        "cell phone" &&
+                      object.score >=
+                        0.5,
+                  );
+
+                if (phoneDetected) {
+                  phoneFramesRef.current +=
+                    1;
+
+                  setObjectStatus(
+                    "⚠ Mobile phone detected",
+                  );
+
+                  if (
+                    phoneFramesRef.current >=
+                    2
+                  ) {
+                    addViolation(
+                      "A mobile phone has been detected by the AI proctoring system.",
+                      "MOBILE_PHONE",
+                    );
+                  }
+                } else {
+                  phoneFramesRef.current = 0;
 
                   clearIssue(
-                    "FACE_OBSTRUCTION"
+                    "MOBILE_PHONE",
                   );
 
-                  setFaceStatus(
-                    `Face verified • ${visiblePoints.length}/9 landmarks visible`
-                  );
+                  const visibleObjects =
+                    objects.filter(
+                      (object) =>
+                        object.score >=
+                          0.55 &&
+                        object.class
+                          .toLowerCase() !==
+                          "person",
+                    );
+
+                  if (
+                    visibleObjects.length >
+                    0
+                  ) {
+                    setObjectStatus(
+                      `Detected: ${visibleObjects
+                        .slice(0, 2)
+                        .map(
+                          (item) =>
+                            item.class,
+                        )
+                        .join(", ")}`,
+                    );
+                  } else {
+                    setObjectStatus(
+                      "No suspicious object detected",
+                    );
+                  }
                 }
-              }
-
-              /* =========================
-                 OBJECT DETECTION
-              ========================= */
-
-              const objects =
-                await objectDetector.detect(video);
-
-              const detectedObjectBoxes =
-                objects
-                  .filter(
-                    (object) =>
-                      object.score >= 0.45
-                  )
-                  .map((object) => ({
-                    x:
-                      object.bbox[0] /
-                      video.videoWidth,
-
-                    y:
-                      object.bbox[1] /
-                      video.videoHeight,
-
-                    width:
-                      object.bbox[2] /
-                      video.videoWidth,
-
-                    height:
-                      object.bbox[3] /
-                      video.videoHeight,
-
-                    label:
-                      object.class,
-
-                    score:
-                      object.score,
-                  }));
-
-              setObjectBoxes(
-                detectedObjectBoxes
-              );
-
-              /* MULTIPLE PERSON DETECTION */
-
-              const detectedPeople =
-                objects.filter(
-                  (object) =>
-                    object.class
-                      .toLowerCase() ===
-                    "person" &&
-                    object.score > 0.45
+              } catch (error) {
+                console.error(
+                  "AI detection error:",
+                  error,
                 );
 
-              const personCount =
-                detectedPeople.length;
-
-              if (personCount > 1) {
-                multiplePeopleFramesRef.current +=
-                  1;
-
-                if (
-                  multiplePeopleFramesRef.current >=
-                  2
-                ) {
-                  setFaceStatus(
-                    `${personCount} people detected`
-                  );
-
-                  addViolation(
-                    `Multiple people were detected (${personCount} people). Only the registered student is allowed.`,
-                    "MULTIPLE_PEOPLE"
-                  );
-                }
-              } else {
-                multiplePeopleFramesRef.current =
-                  0;
-
-                clearIssue(
-                  "MULTIPLE_PEOPLE"
+                setFaceStatus(
+                  "AI face detection temporarily unavailable",
                 );
-              }
-
-              /* MOBILE PHONE DETECTION */
-
-              const phoneDetected =
-                objects.some(
-                  (object) =>
-                    object.class
-                      .toLowerCase() ===
-                    "cell phone" &&
-                    object.score > 0.35
-                );
-
-              if (phoneDetected) {
-                phoneFramesRef.current += 1;
 
                 setObjectStatus(
-                  "⚠ Mobile phone detected"
+                  "AI object detection temporarily unavailable",
                 );
-
-                if (
-                  phoneFramesRef.current >= 2
-                ) {
-                  addViolation(
-                    "A mobile phone has been detected by the AI proctoring system.",
-                    "MOBILE_PHONE"
-                  );
-                }
-              } else {
-                phoneFramesRef.current = 0;
-
-                clearIssue(
-                  "MOBILE_PHONE"
-                );
-
-                const suspiciousObjects =
-                  objects.filter(
-                    (object) =>
-                      object.score > 0.55 &&
-                      object.class
-                        .toLowerCase() !==
-                      "person"
-                  );
-
-                if (
-                  suspiciousObjects.length > 0
-                ) {
-                  setObjectStatus(
-                    `Detected: ${suspiciousObjects
-                      .slice(0, 2)
-                      .map(
-                        (item) =>
-                          item.class
-                      )
-                      .join(", ")}`
-                  );
-                } else {
-                  setObjectStatus(
-                    "No suspicious object detected"
-                  );
-                }
+              } finally {
+                isDetectingRef.current = false;
               }
-            } catch (error) {
-              console.error(
-                "AI detection error:",
-                error
-              );
-
-              setFaceStatus(
-                "AI detection temporarily unavailable"
-              );
-            } finally {
-              isDetectingRef.current = false;
-            }
-          }, 1000);
-      } catch (error) {
-        console.error(
-          "Proctoring startup error:",
-          error
-        );
-
-        if (isMounted) {
-          setCameraError(
-            "Camera or AI proctoring system could not be started. Please allow camera permission and refresh the page."
+            }, 1000);
+        } catch (error) {
+          console.error(
+            "Proctoring startup error:",
+            error,
           );
 
-          setCameraActive(false);
-          setModelsLoading(false);
+          if (isMounted) {
+            setModelsLoading(false);
+
+            setCameraError(
+              "Camera or AI proctoring could not be started. Please allow camera permission and refresh the page.",
+            );
+
+            setCameraActive(false);
+          }
         }
-      }
-    };
+      };
 
     startProctoring();
 
@@ -582,101 +865,114 @@ export default function ExamAttemptPage() {
       isMounted = false;
       stopCamera();
     };
-  }, []);
+  }, [examId, router]);
 
-  /* TIMER */
-
+  /*
+   * TIMER
+   */
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((previous) => {
-        if (previous <= 1) {
-          clearInterval(timer);
+    const timer =
+      setInterval(() => {
+        setTimeLeft((previous) => {
+          if (previous <= 1) {
+            clearInterval(timer);
 
-          if (!terminatedRef.current) {
-            router.push(
-              `/student/exams/${examId}/submit`
-            );
+            if (
+              !terminatedRef.current
+            ) {
+              stopCamera();
+
+              router.push(
+                `/student/exams/${examId}/submit`,
+              );
+            }
+
+            return 0;
           }
 
-          return 0;
-        }
-
-        return previous - 1;
-      });
-    }, 1000);
+          return previous - 1;
+        });
+      }, 1000);
 
     return () => clearInterval(timer);
   }, [router, examId]);
 
-  /* TAB SWITCH DETECTION */
-
+  /*
+   * TAB SWITCH
+   */
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (
-        document.hidden &&
-        !terminatedRef.current
-      ) {
-        addViolation(
-          "Tab switching or leaving the examination window has been detected.",
-          "TAB_SWITCH"
-        );
-      }
+    const handleVisibilityChange =
+      () => {
+        if (
+          document.hidden &&
+          !terminatedRef.current
+        ) {
+          addViolation(
+            "Tab switching or leaving the examination window has been detected.",
+            "TAB_SWITCH",
+          );
+        }
 
-      if (!document.hidden) {
-        clearIssue("TAB_SWITCH");
-      }
-    };
+        if (!document.hidden) {
+          clearIssue("TAB_SWITCH");
+        }
+      };
 
     document.addEventListener(
       "visibilitychange",
-      handleVisibilityChange
+      handleVisibilityChange,
     );
 
     return () => {
       document.removeEventListener(
         "visibilitychange",
-        handleVisibilityChange
+        handleVisibilityChange,
       );
     };
   }, []);
 
-  /* FULLSCREEN EXIT DETECTION */
-
+  /*
+   * FULLSCREEN
+   */
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (
-        !document.fullscreenElement &&
-        document.visibilityState === "visible" &&
-        !terminatedRef.current
-      ) {
-        addViolation(
-          "Fullscreen mode was exited. Please return to fullscreen mode immediately.",
-          "FULLSCREEN_EXIT"
-        );
-      }
+    const handleFullscreenChange =
+      () => {
+        if (
+          !document.fullscreenElement &&
+          document.visibilityState ===
+            "visible" &&
+          !terminatedRef.current
+        ) {
+          addViolation(
+            "Fullscreen mode was exited.",
+            "FULLSCREEN_EXIT",
+          );
+        }
 
-      if (document.fullscreenElement) {
-        clearIssue(
-          "FULLSCREEN_EXIT"
-        );
-      }
-    };
+        if (
+          document.fullscreenElement
+        ) {
+          clearIssue(
+            "FULLSCREEN_EXIT",
+          );
+        }
+      };
 
     document.addEventListener(
       "fullscreenchange",
-      handleFullscreenChange
+      handleFullscreenChange,
     );
 
     return () => {
       document.removeEventListener(
         "fullscreenchange",
-        handleFullscreenChange
+        handleFullscreenChange,
       );
     };
   }, []);
 
   const handleSelectAnswer = (
-    optionIndex: number
+    optionIndex: number,
   ) => {
     setAnswers((previous) => ({
       ...previous,
@@ -684,29 +980,36 @@ export default function ExamAttemptPage() {
     }));
   };
 
-  const handleMarkForReview = () => {
-    setReviewQuestions((previous) =>
-      previous.includes(question.id)
-        ? previous.filter(
-          (id) =>
-            id !== question.id
-        )
-        : [
-          ...previous,
-          question.id,
-        ]
-    );
-  };
+  const handleMarkForReview =
+    () => {
+      setReviewQuestions(
+        (previous) =>
+          previous.includes(
+            question.id,
+          )
+            ? previous.filter(
+                (id) =>
+                  id !==
+                  question.id,
+              )
+            : [
+                ...previous,
+                question.id,
+              ],
+      );
+    };
 
   const handleSubmitExam = () => {
     stopCamera();
 
     if (document.fullscreenElement) {
-      document.exitFullscreen();
+      document.exitFullscreen().catch(
+        () => {},
+      );
     }
 
     router.push(
-      `/student/exams/${examId}/submit`
+      `/student/exams/${examId}/submit`,
     );
   };
 
@@ -719,32 +1022,34 @@ export default function ExamAttemptPage() {
         setWarning("");
 
         clearIssue(
-          "FULLSCREEN_EXIT"
+          "FULLSCREEN_EXIT",
         );
       } catch {
         setWarning(
-          "Fullscreen permission is required to continue the examination."
+          "Fullscreen permission is required to continue.",
         );
       }
     };
 
   const handleCloseWarning = () => {
-    if (examTerminated) return;
+    if (examTerminated) {
+      return;
+    }
 
     setShowWarning(false);
     setWarning("");
   };
 
   const formatTime = (
-    seconds: number
+    seconds: number,
   ) => {
-    const hours = Math.floor(
-      seconds / 3600
-    );
+    const hours =
+      Math.floor(seconds / 3600);
 
-    const minutes = Math.floor(
-      (seconds % 3600) / 60
-    );
+    const minutes =
+      Math.floor(
+        (seconds % 3600) / 60,
+      );
 
     const secs =
       seconds % 60;
@@ -753,20 +1058,67 @@ export default function ExamAttemptPage() {
       .toString()
       .padStart(
         2,
-        "0"
+        "0",
       )}:${minutes
-        .toString()
-        .padStart(
-          2,
-          "0"
-        )}:${secs
-          .toString()
-          .padStart(2, "0")}`;
+      .toString()
+      .padStart(
+        2,
+        "0",
+      )}:${secs
+      .toString()
+      .padStart(
+        2,
+        "0")}`;
   };
+
+  if (examLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc]">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-[#dfe8eb] border-t-[#63a8b9]" />
+          <p className="mt-4 text-[14px] text-[#7d8796]">
+            Loading examination...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (examError || !exam) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc]">
+        <div className="max-w-[450px] rounded-[22px] bg-white p-[30px] text-center shadow-sm">
+          <h1 className="text-[24px] font-bold text-[#263446]">
+            Unable to Load Examination
+          </h1>
+
+          <p className="mt-[10px] text-[13px] text-[#7d8796]">
+            {examError ||
+              "The examination could not be loaded."}
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              router.push(
+                "/student/exams",
+              )
+            }
+            className="mt-[20px] rounded-[12px] bg-[#63a8b9] px-[20px] py-[12px] text-[13px] font-semibold text-white"
+          >
+            Back to My Exams
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#263446]">
+
+      {/* HEADER */}
       <header className="flex items-center justify-between border-b border-[#e8eaf0] bg-white px-[28px] py-[16px]">
+
         <div className="flex items-center gap-[12px]">
           <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#63a8b9] text-[19px] text-white">
             ✦
@@ -785,7 +1137,7 @@ export default function ExamAttemptPage() {
 
         <div className="text-center">
           <p className="text-[10px] text-[#8b94a3]">
-            Database Management System
+            {exam.title}
           </p>
 
           <h2 className="mt-[3px] text-[20px] font-bold text-[#d66b75]">
@@ -794,11 +1146,13 @@ export default function ExamAttemptPage() {
         </div>
 
         <div className="flex items-center gap-[10px]">
+
           <div
-            className={`h-[9px] w-[9px] rounded-full ${cameraActive
+            className={`h-[9px] w-[9px] rounded-full ${
+              cameraActive
                 ? "bg-green-500"
                 : "bg-red-500"
-              }`}
+            }`}
           />
 
           <span className="text-[11px] text-[#7d8796]">
@@ -814,22 +1168,29 @@ export default function ExamAttemptPage() {
       </header>
 
       <div className="flex min-h-[calc(100vh-75px)]">
+
+        {/* QUESTION AREA */}
         <section className="flex-1 p-[35px]">
+
           <div className="mx-auto max-w-[900px]">
+
             <div className="rounded-[24px] border border-[#e8eaf0] bg-white p-[32px]">
+
               <div className="flex items-center justify-between">
+
                 <span className="rounded-full bg-[#eef8fa] px-[12px] py-[6px] text-[11px] font-semibold text-[#63a8b9]">
                   Question {currentQuestion + 1} of{" "}
                   {questions.length}
                 </span>
 
                 {reviewQuestions.includes(
-                  question.id
+                  question.id,
                 ) && (
-                    <span className="text-[11px] font-semibold text-[#e2a93b]">
-                      ★ Marked for Review
-                    </span>
-                  )}
+                  <span className="text-[11px] font-semibold text-[#e2a93b]">
+                    ★ Marked for Review
+                  </span>
+                )}
+
               </div>
 
               <h2 className="mt-[30px] text-[22px] font-semibold leading-[1.6]">
@@ -837,50 +1198,57 @@ export default function ExamAttemptPage() {
               </h2>
 
               <div className="mt-[30px] space-y-[14px]">
+
                 {question.options.map(
                   (option, index) => (
                     <button
+                      type="button"
                       key={index}
                       onClick={() =>
                         handleSelectAnswer(
-                          index
+                          index,
                         )
                       }
-                      className={`flex w-full items-center gap-[15px] rounded-[15px] border p-[17px] text-left text-[14px] transition ${answers[
+                      className={`flex w-full items-center gap-[15px] rounded-[15px] border p-[17px] text-left text-[14px] transition ${
+                        answers[
                           question.id
                         ] === index
                           ? "border-[#63a8b9] bg-[#eef8fa]"
                           : "border-[#e8eaf0] hover:border-[#63a8b9]"
-                        }`}
+                      }`}
                     >
                       <span
-                        className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border text-[12px] font-semibold ${answers[
+                        className={`flex h-[30px] w-[30px] items-center justify-center rounded-full border text-[12px] font-semibold ${
+                          answers[
                             question.id
                           ] === index
                             ? "border-[#63a8b9] bg-[#63a8b9] text-white"
                             : "border-[#dfe3e9] text-[#8b94a3]"
-                          }`}
+                        }`}
                       >
                         {String.fromCharCode(
-                          65 + index
+                          65 + index,
                         )}
                       </span>
 
                       {option}
                     </button>
-                  )
+                  ),
                 )}
+
               </div>
 
               <div className="mt-[38px] flex items-center justify-between border-t border-[#eef0f4] pt-[24px]">
+
                 <button
+                  type="button"
                   onClick={() =>
                     setCurrentQuestion(
                       (previous) =>
                         Math.max(
                           previous - 1,
-                          0
-                        )
+                          0,
+                        ),
                     )
                   }
                   disabled={
@@ -892,6 +1260,7 @@ export default function ExamAttemptPage() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={
                     handleMarkForReview
                   }
@@ -901,8 +1270,9 @@ export default function ExamAttemptPage() {
                 </button>
 
                 {currentQuestion ===
-                  questions.length - 1 ? (
+                questions.length - 1 ? (
                   <button
+                    type="button"
                     onClick={
                       handleSubmitExam
                     }
@@ -912,13 +1282,15 @@ export default function ExamAttemptPage() {
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={() =>
                       setCurrentQuestion(
                         (previous) =>
                           Math.min(
                             previous + 1,
-                            questions.length - 1
-                          )
+                            questions.length -
+                              1,
+                          ),
                       )
                     }
                     className="rounded-[12px] bg-[#63a8b9] px-[20px] py-[11px] text-[13px] font-semibold text-white"
@@ -926,14 +1298,19 @@ export default function ExamAttemptPage() {
                     Save & Next →
                   </button>
                 )}
+
               </div>
             </div>
           </div>
         </section>
 
+        {/* PROCTORING */}
         <aside className="w-[300px] border-l border-[#e8eaf0] bg-white p-[24px]">
+
           <div>
+
             <div className="mb-[12px] flex items-center justify-between">
+
               <h2 className="text-[14px] font-bold">
                 AI Live Proctoring
               </h2>
@@ -945,6 +1322,7 @@ export default function ExamAttemptPage() {
             </div>
 
             <div className="relative aspect-video overflow-hidden rounded-[16px] bg-[#17202b]">
+
               <video
                 ref={videoRef}
                 autoPlay
@@ -953,7 +1331,7 @@ export default function ExamAttemptPage() {
                 className="h-full w-full object-cover"
               />
 
-              {/* FACE BLUE BOX */}
+              {/* FACE BOX */}
               {faceBox && (
                 <div
                   className="pointer-events-none absolute border-2 border-[#2196f3]"
@@ -965,12 +1343,12 @@ export default function ExamAttemptPage() {
                   }}
                 >
                   <div className="absolute -top-[20px] left-0 whitespace-nowrap bg-[#2196f3] px-[6px] py-[2px] text-[9px] font-semibold text-white">
-                    👤 {STUDENT_NAME}
+                    👤 Face
                   </div>
                 </div>
               )}
 
-              {/* FACE LANDMARK POINTS */}
+              {/* LANDMARKS */}
               {landmarkPoints.map(
                 (point, index) => (
                   <div
@@ -981,7 +1359,7 @@ export default function ExamAttemptPage() {
                       top: `${point.y * 100}%`,
                     }}
                   />
-                )
+                ),
               )}
 
               {/* OBJECT BOXES */}
@@ -989,12 +1367,13 @@ export default function ExamAttemptPage() {
                 (object, index) => (
                   <div
                     key={`${object.label}-${index}`}
-                    className={`pointer-events-none absolute border ${object.label
+                    className={`pointer-events-none absolute border ${
+                      object.label
                         .toLowerCase() ===
-                        "cell phone"
+                      "cell phone"
                         ? "border-red-500"
                         : "border-yellow-400"
-                      }`}
+                    }`}
                     style={{
                       left: `${object.x * 100}%`,
                       top: `${object.y * 100}%`,
@@ -1003,21 +1382,22 @@ export default function ExamAttemptPage() {
                     }}
                   >
                     <span
-                      className={`absolute -top-[18px] left-0 whitespace-nowrap px-[5px] py-[2px] text-[8px] font-semibold text-white ${object.label
+                      className={`absolute -top-[18px] left-0 whitespace-nowrap px-[5px] py-[2px] text-[8px] font-semibold text-white ${
+                        object.label
                           .toLowerCase() ===
-                          "cell phone"
+                        "cell phone"
                           ? "bg-red-500"
                           : "bg-yellow-500"
-                        }`}
+                      }`}
                     >
                       {object.label}{" "}
                       {Math.round(
-                        object.score * 100
+                        object.score * 100,
                       )}
                       %
                     </span>
                   </div>
-                )
+                ),
               )}
 
               {!cameraActive &&
@@ -1036,12 +1416,14 @@ export default function ExamAttemptPage() {
               {modelsLoading &&
                 cameraActive && (
                   <div className="absolute bottom-[8px] left-[8px] rounded-full bg-black/60 px-[8px] py-[4px] text-[9px] text-white">
-                    Loading AI...
+                    Loading AI models...
                   </div>
                 )}
+
             </div>
 
             <div className="mt-[12px] space-y-[8px]">
+
               <div className="rounded-[10px] bg-[#f5f7fa] px-[10px] py-[9px] text-[10px]">
                 <span className="font-semibold">
                   👤 Face:
@@ -1064,10 +1446,13 @@ export default function ExamAttemptPage() {
                   ? "Active"
                   : "Inactive"}
               </div>
+
             </div>
           </div>
 
+          {/* QUESTION PALETTE */}
           <div className="mt-[28px] border-t border-[#eef0f4] pt-[22px]">
+
             <h2 className="text-[16px] font-bold">
               Question Palette
             </h2>
@@ -1077,6 +1462,7 @@ export default function ExamAttemptPage() {
             </p>
 
             <div className="mt-[20px] grid grid-cols-4 gap-[10px]">
+
               {questions.map(
                 (item, index) => {
                   const answered =
@@ -1085,35 +1471,39 @@ export default function ExamAttemptPage() {
 
                   const review =
                     reviewQuestions.includes(
-                      item.id
+                      item.id,
                     );
 
                   return (
                     <button
+                      type="button"
                       key={item.id}
                       onClick={() =>
                         setCurrentQuestion(
-                          index
+                          index,
                         )
                       }
-                      className={`flex h-[44px] items-center justify-center rounded-[11px] text-[13px] font-semibold ${currentQuestion ===
-                          index
+                      className={`flex h-[44px] items-center justify-center rounded-[11px] text-[13px] font-semibold ${
+                        currentQuestion ===
+                        index
                           ? "bg-[#63a8b9] text-white"
                           : review
                             ? "bg-[#fff1cc] text-[#c38c21]"
                             : answered
                               ? "bg-[#e7f6ef] text-[#4f9b70]"
                               : "bg-[#f4f6f9] text-[#7d8796]"
-                        }`}
+                      }`}
                     >
                       {item.id}
                     </button>
                   );
-                }
+                },
               )}
+
             </div>
 
             <button
+              type="button"
               onClick={handleSubmitExam}
               className="mt-[25px] w-full rounded-[13px] bg-[#d66b75] px-[18px] py-[13px] text-[13px] font-semibold text-white"
             >
@@ -1123,9 +1513,12 @@ export default function ExamAttemptPage() {
         </aside>
       </div>
 
+      {/* WARNING */}
       {showWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-[20px]">
+
           <div className="w-full max-w-[440px] rounded-[24px] bg-white p-[32px] text-center shadow-2xl">
+
             <div className="mx-auto flex h-[60px] w-[60px] items-center justify-center rounded-full bg-[#fff1f2] text-[28px]">
               ⚠️
             </div>
@@ -1141,17 +1534,22 @@ export default function ExamAttemptPage() {
             </p>
 
             <div className="mt-[18px] rounded-[13px] bg-[#fff7f7] p-[12px] text-[12px] text-[#d66b75]">
-              Total Violations: {violations} / 3
+              Total Violations:{" "}
+              {violations} / 3
             </div>
 
             <div className="mt-[24px]">
+
               {examTerminated ? (
                 <div className="rounded-[13px] bg-[#fff1f2] px-[16px] py-[13px] text-[13px] font-semibold text-[#d66b75]">
-                  Examination is being submitted automatically...
+                  Examination is being
+                  submitted automatically...
                 </div>
               ) : (
                 <div className="flex gap-[12px]">
+
                   <button
+                    type="button"
                     onClick={
                       handleReturnFullscreen
                     }
@@ -1161,6 +1559,7 @@ export default function ExamAttemptPage() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={
                       handleCloseWarning
                     }
@@ -1168,12 +1567,15 @@ export default function ExamAttemptPage() {
                   >
                     Continue
                   </button>
+
                 </div>
               )}
+
             </div>
           </div>
         </div>
       )}
+
     </main>
   );
 }
