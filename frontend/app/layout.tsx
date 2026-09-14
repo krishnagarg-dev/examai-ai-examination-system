@@ -18,7 +18,11 @@ export const metadata: Metadata = {
     "AI-powered examination management and intelligent proctoring platform",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="en"

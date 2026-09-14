@@ -7,6 +7,8 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ExamsModule } from './exams/exams.module';
+import { AttemptsModule } from './attempts/attempts.module';
+import { ProctoringModule } from './proctoring/proctoring.module';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { ExamsModule } from './exams/exams.module';
     UsersModule,
     AuthModule,
     ExamsModule,
+    AttemptsModule,
+    ProctoringModule,
   ],
 
   controllers: [AppController],

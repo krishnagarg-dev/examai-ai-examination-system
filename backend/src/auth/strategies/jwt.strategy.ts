@@ -3,40 +3,26 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 
-import { UsersService } from '../../users/users.service';
-
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly configService: ConfigService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-
       ignoreExpiration: false,
-
       secretOrKey:
-        configService.get<string>('JWT_SECRET') || 'fallback-secret',
+        configService.get<string>('JWT_SECRET') || 'dev-secret',
     });
   }
 
-  async validate(payload: {
-    sub: string;
-    email: string;
-    role: string;
-  }) {
-    const user = await this.usersService.findById(payload.sub);
-
-    if (!user) {
-      throw new UnauthorizedException('User not found');
+  async validate(payload: any) {
+    if (!payload?.sub) {
+      throw new UnauthorizedException('Invalid token');
     }
 
     return {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
     };
   }
 }
