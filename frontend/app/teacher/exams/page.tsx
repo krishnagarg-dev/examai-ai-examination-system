@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   ChevronDown,
@@ -24,65 +24,85 @@ const navItems = [
   { icon: "▥", label: "Results", href: "/teacher/results" },
 ];
 
-const exams = [
-  {
-    id: 1,
-    title: "Data Structures & Algorithms",
-    code: "MCA-301",
-    date: "28 Aug 2026",
-    time: "10:00 AM",
-    duration: "2 Hours",
-    students: 64,
-    status: "Upcoming",
-  },
-  {
-    id: 2,
-    title: "Database Management System",
-    code: "MCA-302",
-    date: "26 Aug 2026",
-    time: "02:00 PM",
-    duration: "2 Hours",
-    students: 58,
-    status: "Live",
-  },
-  {
-    id: 3,
-    title: "Computer Networks",
-    code: "MCA-303",
-    date: "24 Aug 2026",
-    time: "11:00 AM",
-    duration: "2 Hours",
-    students: 72,
-    status: "Completed",
-  },
-  {
-    id: 4,
-    title: "Operating Systems",
-    code: "MCA-304",
-    date: "02 Sep 2026",
-    time: "09:30 AM",
-    duration: "2 Hours",
-    students: 46,
-    status: "Upcoming",
-  },
-  {
-    id: 5,
-    title: "Software Engineering",
-    code: "MCA-305",
-    date: "18 Aug 2026",
-    time: "01:00 PM",
-    duration: "2 Hours",
-    students: 51,
-    status: "Completed",
-  },
-];
-
 export default function TeacherExams() {
   const pathname = usePathname();
   const router = useRouter();
 
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
+
+  const [exams, setExams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        const response = await fetch("/api/exams", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch exams");
+        }
+
+        const examList = Array.isArray(data) ? data : data.exams || [];
+
+        const formattedExams = examList.map((exam: any) => {
+          const startDate = exam.startTime
+            ? new Date(exam.startTime)
+            : null;
+
+          return {
+            id: exam._id,
+            title: exam.title || "Untitled Exam",
+            code: exam.code || "N/A",
+
+            date: startDate
+              ? startDate.toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "N/A",
+
+            time: startDate
+              ? startDate.toLocaleTimeString("en-IN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "N/A",
+
+            duration: `${exam.duration || 0} Minutes`,
+
+            students: Array.isArray(exam.students)
+              ? exam.students.length
+              : 0,
+
+            status:
+              exam.status === "scheduled"
+                ? "Upcoming"
+                : exam.status === "completed"
+                  ? "Completed"
+                  : exam.status === "live"
+                    ? "Live"
+                    : exam.status || "Upcoming",
+          };
+        });
+
+        setExams(formattedExams);
+      } catch (error) {
+        console.error("Failed to fetch exams:", error);
+        setExams([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExams();
+  }, []);
 
   const filteredExams = useMemo(() => {
     return exams.filter((exam) => {
@@ -95,7 +115,7 @@ export default function TeacherExams() {
 
       return matchesSearch && matchesStatus;
     });
-  }, [search, selectedStatus]);
+  }, [exams, search, selectedStatus]);
 
   const handleLogout = () => {
     localStorage.removeItem("examai-auth");
@@ -113,6 +133,17 @@ export default function TeacherExams() {
 
     return "bg-[#f1f2f5] text-[#748092]";
   };
+
+  const totalExams = exams.length;
+  const upcomingExams = exams.filter(
+    (exam) => exam.status === "Upcoming",
+  ).length;
+  const liveExams = exams.filter(
+    (exam) => exam.status === "Live",
+  ).length;
+  const completedExams = exams.filter(
+    (exam) => exam.status === "Completed",
+  ).length;
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#263446]">
@@ -224,7 +255,10 @@ export default function TeacherExams() {
                 <ClipboardList size={20} />
               </div>
 
-              <h2 className="mt-[17px] text-[29px] font-bold">8</h2>
+              <h2 className="mt-[17px] text-[29px] font-bold">
+                {totalExams}
+              </h2>
+
               <p className="mt-[4px] text-[13px] text-[#7d8796]">
                 Total Exams
               </p>
@@ -235,7 +269,10 @@ export default function TeacherExams() {
                 <CalendarDays size={20} />
               </div>
 
-              <h2 className="mt-[17px] text-[29px] font-bold">3</h2>
+              <h2 className="mt-[17px] text-[29px] font-bold">
+                {upcomingExams}
+              </h2>
+
               <p className="mt-[4px] text-[13px] text-[#7d8796]">
                 Upcoming
               </p>
@@ -246,7 +283,10 @@ export default function TeacherExams() {
                 <span className="h-[9px] w-[9px] rounded-full bg-[#4e9b6b]" />
               </div>
 
-              <h2 className="mt-[17px] text-[29px] font-bold">1</h2>
+              <h2 className="mt-[17px] text-[29px] font-bold">
+                {liveExams}
+              </h2>
+
               <p className="mt-[4px] text-[13px] text-[#7d8796]">
                 Live Exam
               </p>
@@ -257,17 +297,22 @@ export default function TeacherExams() {
                 <FileText size={20} />
               </div>
 
-              <h2 className="mt-[17px] text-[29px] font-bold">4</h2>
+              <h2 className="mt-[17px] text-[29px] font-bold">
+                {completedExams}
+              </h2>
+
               <p className="mt-[4px] text-[13px] text-[#7d8796]">
                 Completed
               </p>
             </div>
+
           </div>
 
           {/* EXAMS LIST */}
           <div className="mt-[28px] rounded-[22px] border border-[#e8eaf0] bg-white p-[26px]">
 
             <div className="flex flex-col justify-between gap-[18px] xl:flex-row xl:items-center">
+
               <div>
                 <h2 className="text-[19px] font-bold">
                   All Examinations
@@ -279,6 +324,7 @@ export default function TeacherExams() {
               </div>
 
               <div className="flex flex-col gap-[12px] sm:flex-row">
+
                 <div className="flex w-full items-center gap-[10px] rounded-[12px] border border-[#e1e5eb] px-[13px] py-[10px] sm:w-[250px]">
                   <Search size={17} className="text-[#8b94a3]" />
 
@@ -308,92 +354,118 @@ export default function TeacherExams() {
                     className="pointer-events-none absolute right-[12px] top-[11px] text-[#8b94a3]"
                   />
                 </div>
+
               </div>
             </div>
 
             <div className="mt-[25px] space-y-[14px]">
-              {filteredExams.map((exam) => (
-                <div
-                  key={exam.id}
-                  className="flex flex-col gap-[18px] rounded-[18px] border border-[#eef0f4] p-[20px] transition hover:bg-[#fafbfc] 2xl:flex-row 2xl:items-center 2xl:justify-between"
-                >
-                  <div className="flex items-start gap-[15px]">
-                    <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[14px] bg-[#eef8fa] text-[#63a8b9]">
-                      <FileText size={21} />
-                    </div>
 
-                    <div>
-                      <div className="flex flex-wrap items-center gap-[10px]">
-                        <h3 className="text-[15px] font-semibold">
-                          {exam.title}
-                        </h3>
+              {loading ? (
+                <div className="py-[50px] text-center text-[13px] text-[#8b94a3]">
+                  Loading examinations...
+                </div>
+              ) : (
+                <>
+                  {filteredExams.map((exam) => (
+                    <div
+                      key={exam.id}
+                      className="flex flex-col gap-[18px] rounded-[18px] border border-[#eef0f4] p-[20px] transition hover:bg-[#fafbfc] 2xl:flex-row 2xl:items-center 2xl:justify-between"
+                    >
 
-                        <span
-                          className={`rounded-full px-[10px] py-[4px] text-[10px] font-semibold ${getStatusClass(
-                            exam.status
-                          )}`}
-                        >
-                          {exam.status}
-                        </span>
+                      <div className="flex items-start gap-[15px]">
+
+                        <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[14px] bg-[#eef8fa] text-[#63a8b9]">
+                          <FileText size={21} />
+                        </div>
+
+                        <div>
+
+                          <div className="flex flex-wrap items-center gap-[10px]">
+
+                            <h3 className="text-[15px] font-semibold">
+                              {exam.title}
+                            </h3>
+
+                            <span
+                              className={`rounded-full px-[10px] py-[4px] text-[10px] font-semibold ${getStatusClass(
+                                exam.status,
+                              )}`}
+                            >
+                              {exam.status}
+                            </span>
+
+                          </div>
+
+                          <p className="mt-[6px] text-[12px] text-[#8b94a3]">
+                            {exam.code}
+                          </p>
+
+                          <div className="mt-[13px] flex flex-wrap gap-x-[18px] gap-y-[8px] text-[11px] text-[#748092]">
+
+                            <span className="flex items-center gap-[5px]">
+                              <CalendarDays size={14} />
+                              {exam.date}
+                            </span>
+
+                            <span className="flex items-center gap-[5px]">
+                              <Clock3 size={14} />
+                              {exam.time}
+                            </span>
+
+                            <span className="flex items-center gap-[5px]">
+                              <Clock3 size={14} />
+                              {exam.duration}
+                            </span>
+
+                            <span className="flex items-center gap-[5px]">
+                              <Users size={14} />
+                              {exam.students} Students
+                            </span>
+
+                          </div>
+
+                        </div>
+
                       </div>
 
-                      <p className="mt-[6px] text-[12px] text-[#8b94a3]">
-                        {exam.code}
+                      <div className="flex items-center gap-[10px]">
+
+                        <button className="flex items-center gap-[7px] rounded-[11px] border border-[#dfe4eb] px-[14px] py-[10px] text-[11px] font-semibold text-[#667386] hover:bg-[#f7f8fc]">
+                          <Eye size={15} />
+                          View
+                        </button>
+
+                        {exam.status !== "Completed" && (
+                          <button className="flex items-center gap-[7px] rounded-[11px] bg-[#eef8fa] px-[14px] py-[10px] text-[11px] font-semibold text-[#63a8b9] hover:opacity-80">
+                            <Edit3 size={15} />
+                            Edit
+                          </button>
+                        )}
+
+                      </div>
+
+                    </div>
+                  ))}
+
+                  {filteredExams.length === 0 && (
+                    <div className="py-[50px] text-center">
+                      <Search
+                        size={28}
+                        className="mx-auto text-[#aeb5c0]"
+                      />
+
+                      <h3 className="mt-[12px] text-[15px] font-semibold">
+                        No examinations found
+                      </h3>
+
+                      <p className="mt-[5px] text-[12px] text-[#8b94a3]">
+                        Try changing your search or filter.
                       </p>
-
-                      <div className="mt-[13px] flex flex-wrap gap-x-[18px] gap-y-[8px] text-[11px] text-[#748092]">
-                        <span className="flex items-center gap-[5px]">
-                          <CalendarDays size={14} />
-                          {exam.date}
-                        </span>
-
-                        <span className="flex items-center gap-[5px]">
-                          <Clock3 size={14} />
-                          {exam.time}
-                        </span>
-
-                        <span className="flex items-center gap-[5px]">
-                          <Clock3 size={14} />
-                          {exam.duration}
-                        </span>
-
-                        <span className="flex items-center gap-[5px]">
-                          <Users size={14} />
-                          {exam.students} Students
-                        </span>
-                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-center gap-[10px]">
-                    <button className="flex items-center gap-[7px] rounded-[11px] border border-[#dfe4eb] px-[14px] py-[10px] text-[11px] font-semibold text-[#667386] hover:bg-[#f7f8fc]">
-                      <Eye size={15} />
-                      View
-                    </button>
-
-                    {exam.status !== "Completed" && (
-                      <button className="flex items-center gap-[7px] rounded-[11px] bg-[#eef8fa] px-[14px] py-[10px] text-[11px] font-semibold text-[#63a8b9] hover:opacity-80">
-                        <Edit3 size={15} />
-                        Edit
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {filteredExams.length === 0 && (
-                <div className="py-[50px] text-center">
-                  <Search size={28} className="mx-auto text-[#aeb5c0]" />
-
-                  <h3 className="mt-[12px] text-[15px] font-semibold">
-                    No examinations found
-                  </h3>
-
-                  <p className="mt-[5px] text-[12px] text-[#8b94a3]">
-                    Try changing your search or filter.
-                  </p>
-                </div>
+                  )}
+                </>
               )}
+
             </div>
           </div>
         </section>
