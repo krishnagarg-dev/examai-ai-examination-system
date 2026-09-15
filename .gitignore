@@ -8,9 +8,9 @@ frontend/.next/
 frontend/out/
 
 # environment files
-.env
-.env.*
-!.env.example
+# .env
+# .env.*
+# !.env.example
 
 frontend/.env
 frontend/.env.*
