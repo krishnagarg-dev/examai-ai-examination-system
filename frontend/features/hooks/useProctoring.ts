@@ -45,7 +45,12 @@ export function useProctoring(
   videoRef: RefObject<HTMLVideoElement | null>,
   enabled = true,
 ) {
-  const streamRef = useRef<MediaStream | null>(null);
+  // -----------------------------------------
+  // CAMERA / AI REFS
+  // -----------------------------------------
+
+  const streamRef =
+    useRef<MediaStream | null>(null);
 
   const detectorRef =
     useRef<cocoSsd.ObjectDetection | null>(null);
@@ -56,20 +61,34 @@ export function useProctoring(
   const timerRef =
     useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const detectingRef = useRef(false);
-  const mountedRef = useRef(true);
-  const terminatedRef = useRef(false);
+  const detectingRef =
+    useRef(false);
 
-  const violationTimesRef = useRef<
-    Partial<Record<ViolationKey, number>>
-  >({});
+  const mountedRef =
+    useRef(true);
+
+  const terminatedRef =
+    useRef(false);
+
+  const violationTimesRef =
+    useRef<Partial<Record<ViolationKey, number>>>({});
 
   const verificationStartRef =
     useRef<number | null>(null);
 
+  // -----------------------------------------
+  // CAMERA STATE
+  // -----------------------------------------
+
   const [cameraActive, setCameraActive] =
     useState(false);
-    
+
+  const [cameraStream, setCameraStream] =
+    useState<MediaStream | null>(null);
+
+  // -----------------------------------------
+  // AI STATE
+  // -----------------------------------------
 
   const [modelsReady, setModelsReady] =
     useState(false);
@@ -82,6 +101,10 @@ export function useProctoring(
 
   const [verificationProgress, setVerificationProgress] =
     useState(0);
+
+  // -----------------------------------------
+  // DETECTION STATE
+  // -----------------------------------------
 
   const [faceStatus, setFaceStatus] =
     useState("Waiting for face...");
@@ -98,6 +121,10 @@ export function useProctoring(
   const [objects, setObjects] =
     useState<DetectedObject[]>([]);
 
+  // -----------------------------------------
+  // VIOLATION STATE
+  // -----------------------------------------
+
   const [violations, setViolations] =
     useState(0);
 
@@ -110,8 +137,16 @@ export function useProctoring(
   const [terminated, setTerminated] =
     useState(false);
 
+  // -----------------------------------------
+  // CAMERA ERROR
+  // -----------------------------------------
+
   const [cameraError, setCameraError] =
     useState("");
+
+  // -----------------------------------------
+  // STOP EVERYTHING
+  // -----------------------------------------
 
   const stop = useCallback(() => {
     if (timerRef.current) {
@@ -127,7 +162,10 @@ export function useProctoring(
       streamRef.current = null;
     }
 
+    setCameraStream(null);
+
     if (videoRef.current) {
+      videoRef.current.pause();
       videoRef.current.srcObject = null;
     }
 
@@ -137,6 +175,10 @@ export function useProctoring(
     setCameraActive(false);
     setModelsReady(false);
   }, [videoRef]);
+
+  // -----------------------------------------
+  // REGISTER VIOLATION
+  // -----------------------------------------
 
   const registerViolation = useCallback(
     (
@@ -152,12 +194,10 @@ export function useProctoring(
 
       const now = Date.now();
 
-      const lastTime =
+      const previousTime =
         violationTimesRef.current[type] ?? 0;
 
-      // Prevent repeated counting of the same
-      // violation on every detection interval.
-      if (now - lastTime < 3000) {
+      if (now - previousTime < 3000) {
         return;
       }
 
@@ -183,6 +223,10 @@ export function useProctoring(
     [],
   );
 
+  // -----------------------------------------
+  // FACE QUALITY CHECK
+  // -----------------------------------------
+
   const verifyFaceQuality = useCallback(
     (
       faceCount: number,
@@ -190,8 +234,10 @@ export function useProctoring(
     ) => {
       if (faceCount === 0) {
         setFaceStatus("No face detected");
+
         verificationStartRef.current = null;
         setVerificationProgress(0);
+
         return false;
       }
 
@@ -199,15 +245,19 @@ export function useProctoring(
         setFaceStatus(
           "Multiple faces detected",
         );
+
         verificationStartRef.current = null;
         setVerificationProgress(0);
+
         return false;
       }
 
       if (!box) {
         setFaceStatus("Face not clear");
+
         verificationStartRef.current = null;
         setVerificationProgress(0);
+
         return false;
       }
 
@@ -243,17 +293,19 @@ export function useProctoring(
 
       const centered =
         Math.abs(
-          faceCenterX - videoCenterX,
+          faceCenterX -
+            videoCenterX,
         ) <= maxOffsetX &&
         Math.abs(
-          faceCenterY - videoCenterY,
+          faceCenterY -
+            videoCenterY,
         ) <= maxOffsetY;
 
       const largeEnough =
         box.width >=
-        PROCTORING_CONFIG.face.minWidth &&
+          PROCTORING_CONFIG.face.minWidth &&
         box.height >=
-        PROCTORING_CONFIG.face.minHeight;
+          PROCTORING_CONFIG.face.minHeight;
 
       if (!centered || !largeEnough) {
         setFaceStatus(
@@ -273,8 +325,12 @@ export function useProctoring(
     [videoRef],
   );
 
-  const processFrame = useCallback(
-    async () => {
+  // -----------------------------------------
+  // PROCESS ONE VIDEO FRAME
+  // -----------------------------------------
+
+  const processFrame =
+    useCallback(async () => {
       if (
         !videoRef.current ||
         !detectorRef.current ||
@@ -285,11 +341,12 @@ export function useProctoring(
         return;
       }
 
-      const video = videoRef.current;
+      const video =
+        videoRef.current;
 
       if (
         video.readyState <
-        HTMLMediaElement.HAVE_CURRENT_DATA ||
+          HTMLMediaElement.HAVE_CURRENT_DATA ||
         video.videoWidth === 0 ||
         video.videoHeight === 0
       ) {
@@ -299,76 +356,109 @@ export function useProctoring(
       detectingRef.current = true;
 
       try {
-        // -------------------------------
+        // =====================================
         // COCO-SSD OBJECT DETECTION
-        // -------------------------------
-        const detectedObjects =
+        // No filter(), no map(), no type issue.
+        // =====================================
+
+        const detected =
           await detectorRef.current.detect(
             video,
           );
 
-        const filteredObjects: DetectedObject[] =
-          detectedObjects
-            .filter(
-              (item) =>
-                item.score >=
-                PROCTORING_CONFIG.thresholds
-                  .objectDetection,
-            )
-            .map((item) => ({
-              x: item.bbox[0],
-              y: item.bbox[1],
-              width: item.bbox[2],
-              height: item.bbox[3],
-              label: item.class,
-              score: item.score,
-            }));
+        const nextObjects: DetectedObject[] = [];
 
-        setObjects(filteredObjects);
+        for (const detection of detected) {
+          if (
+            detection.score <
+            PROCTORING_CONFIG
+              .thresholds
+              .objectDetection
+          ) {
+            continue;
+          }
 
-        const suspiciousObjects =
-          filteredObjects.filter((item) =>
-            [
-              "cell phone",
-              "mobile phone",
-              "laptop",
-            ].includes(
-              item.label.toLowerCase(),
-            ),
+          const x =
+            detection.bbox[0];
+
+          const y =
+            detection.bbox[1];
+
+          const width =
+            detection.bbox[2];
+
+          const height =
+            detection.bbox[3];
+
+          const label =
+            detection.class;
+
+          nextObjects.push({
+            x,
+            y,
+            width,
+            height,
+            label,
+            score: detection.score,
+          });
+        }
+
+        setObjects(nextObjects);
+
+        // =====================================
+        // SUSPICIOUS OBJECT CHECK
+        // =====================================
+
+        let phoneDetected = false;
+        let suspiciousDetected = false;
+
+        for (const object of nextObjects) {
+          const normalized =
+            object.label.toLowerCase();
+
+          if (
+            normalized === "cell phone" ||
+            normalized === "mobile phone"
+          ) {
+            phoneDetected = true;
+            suspiciousDetected = true;
+          }
+
+          if (
+            normalized === "laptop"
+          ) {
+            suspiciousDetected = true;
+          }
+        }
+
+        if (phoneDetected) {
+          setObjectStatus(
+            "Mobile phone detected",
           );
 
-        if (suspiciousObjects.length > 0) {
+          registerViolation(
+            "MOBILE_PHONE",
+            "Mobile phone detected.",
+          );
+        } else if (suspiciousDetected) {
           setObjectStatus(
             "Suspicious object detected",
           );
 
-          const phoneDetected =
-            suspiciousObjects.some((item) =>
-              item.label
-                .toLowerCase()
-                .includes("phone"),
-            );
-
-          if (phoneDetected) {
-            registerViolation(
-              "MOBILE_PHONE",
-              "Mobile phone detected.",
-            );
-          } else {
-            registerViolation(
-              "SUSPICIOUS_OBJECT",
-              "Suspicious object detected.",
-            );
-          }
+          registerViolation(
+            "SUSPICIOUS_OBJECT",
+            "Suspicious object detected.",
+          );
         } else {
           setObjectStatus(
             "No suspicious object",
           );
         }
 
-        // -------------------------------
+        // =====================================
         // MEDIAPIPE FACE DETECTION
-        // -------------------------------
+        // =====================================
+
         const result =
           landmarkerRef.current.detectForVideo(
             video,
@@ -378,9 +468,14 @@ export function useProctoring(
         const faces =
           result.faceLandmarks ?? [];
 
+        // -------------------------------------
+        // NO FACE
+        // -------------------------------------
+
         if (faces.length === 0) {
           setFaceBox(null);
           setLandmarks([]);
+
           setFaceStatus(
             "No face detected",
           );
@@ -399,6 +494,10 @@ export function useProctoring(
 
           return;
         }
+
+        // -------------------------------------
+        // MULTIPLE FACES
+        // -------------------------------------
 
         if (faces.length > 1) {
           setFaceStatus(
@@ -420,24 +519,32 @@ export function useProctoring(
           return;
         }
 
-        const face = faces[0];
+        // -------------------------------------
+        // SINGLE FACE
+        // -------------------------------------
 
-        // -------------------------------
-        // FACE BOUNDING BOX
-        // -------------------------------
-        const xs = face.map(
-          (point) => point.x,
-        );
+        const face =
+          faces[0];
 
-        const ys = face.map(
-          (point) => point.y,
-        );
+        const xs: number[] = [];
+        const ys: number[] = [];
 
-        const minX = Math.min(...xs);
-        const maxX = Math.max(...xs);
+        for (const point of face) {
+          xs.push(point.x);
+          ys.push(point.y);
+        }
 
-        const minY = Math.min(...ys);
-        const maxY = Math.max(...ys);
+        const minX =
+          Math.min(...xs);
+
+        const maxX =
+          Math.max(...xs);
+
+        const minY =
+          Math.min(...ys);
+
+        const maxY =
+          Math.max(...ys);
 
         const box: FaceBox = {
           x:
@@ -459,19 +566,23 @@ export function useProctoring(
 
         setFaceBox(box);
 
-        // -------------------------------
+        // -------------------------------------
         // IMPORTANT LANDMARKS
-        // -------------------------------
-        const detectedLandmarks: Point[] = [];
+        // -------------------------------------
 
-        for (const index of IMPORTANT_LANDMARKS) {
-          const point = face[index];
+        const nextLandmarks: Point[] = [];
+
+        for (
+          const index of IMPORTANT_LANDMARKS
+        ) {
+          const point =
+            face[index];
 
           if (!point) {
             continue;
           }
 
-          detectedLandmarks.push({
+          nextLandmarks.push({
             x:
               point.x *
               video.videoWidth,
@@ -483,12 +594,13 @@ export function useProctoring(
         }
 
         setLandmarks(
-          detectedLandmarks,
+          nextLandmarks,
         );
 
-        // -------------------------------
+        // -------------------------------------
         // FACE QUALITY
-        // -------------------------------
+        // -------------------------------------
+
         const goodFace =
           verifyFaceQuality(
             1,
@@ -506,9 +618,10 @@ export function useProctoring(
           return;
         }
 
-        // -------------------------------
-        // 8-SECOND VERIFICATION
-        // -------------------------------
+        // -------------------------------------
+        // 8-SECOND CONTINUOUS VERIFICATION
+        // -------------------------------------
+
         if (!verified) {
           if (
             verificationStartRef.current ===
@@ -527,10 +640,11 @@ export function useProctoring(
 
           const progress =
             Math.min(
-              (elapsedSeconds /
+              (
+                elapsedSeconds /
                 PROCTORING_CONFIG
-                  .verificationSeconds) *
-              100,
+                  .verificationSeconds
+              ) * 100,
               100,
             );
 
@@ -544,8 +658,12 @@ export function useProctoring(
               .verificationSeconds
           ) {
             setVerified(true);
+
             setVerifying(false);
-            setVerificationProgress(100);
+
+            setVerificationProgress(
+              100,
+            );
 
             setFaceStatus(
               "Face verification successful",
@@ -560,18 +678,17 @@ export function useProctoring(
       } finally {
         detectingRef.current = false;
       }
-    },
-    [
+    }, [
       registerViolation,
       verified,
       verifyFaceQuality,
       videoRef,
-    ],
-  );
+    ]);
 
-  // -----------------------------------
+  // -----------------------------------------
   // CLEANUP
-  // -----------------------------------
+  // -----------------------------------------
+
   useEffect(() => {
     mountedRef.current = true;
 
@@ -581,9 +698,10 @@ export function useProctoring(
     };
   }, [stop]);
 
-  // -----------------------------------
-  // CAMERA + AI MODEL INITIALIZATION
-  // -----------------------------------
+  // -----------------------------------------
+  // CAMERA + MODELS
+  // -----------------------------------------
+
   useEffect(() => {
     if (!enabled) {
       return;
@@ -591,206 +709,280 @@ export function useProctoring(
 
     let cancelled = false;
 
-    const initialize = async () => {
-      // ---------------------------------
-      // CAMERA
-      // ---------------------------------
-      try {
-        setCameraError("");
+    const initialize =
+      async () => {
+        // -----------------------------------
+        // CAMERA
+        // -----------------------------------
 
-        setFaceStatus(
-          "Starting camera...",
-        );
+        try {
+          setCameraError("");
 
-        setObjectStatus(
-          "Waiting for AI...",
-        );
-
-        if (
-          !navigator.mediaDevices ||
-          !navigator.mediaDevices
-            .getUserMedia
-        ) {
-          throw new Error(
-            "Camera access is not supported by this browser.",
-          );
-        }
-
-        const stream =
-          await navigator.mediaDevices.getUserMedia(
-            {
-              video: {
-                width: {
-                  ideal:
-                    PROCTORING_CONFIG
-                      .camera.width,
-                },
-
-                height: {
-                  ideal:
-                    PROCTORING_CONFIG
-                      .camera.height,
-                },
-
-                facingMode: "user",
-              },
-
-              audio: false,
-            },
+          setFaceStatus(
+            "Starting camera...",
           );
 
-        if (cancelled) {
-          stream
-            .getTracks()
-            .forEach((track) =>
-              track.stop(),
+          setObjectStatus(
+            "Waiting for AI...",
+          );
+
+          if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices
+              .getUserMedia
+          ) {
+            throw new Error(
+              "Camera access is not supported by this browser.",
             );
+          }
 
-          return;
-        }
+          const stream =
+            await navigator.mediaDevices
+              .getUserMedia({
+                video: {
+                  width: {
+                    ideal:
+                      PROCTORING_CONFIG
+                        .camera.width,
+                  },
 
-        streamRef.current = stream;
-        if (videoRef.current) {
-          const video = videoRef.current;
+                  height: {
+                    ideal:
+                      PROCTORING_CONFIG
+                        .camera.height,
+                  },
 
-          video.srcObject = stream;
-          video.muted = true;
-          video.autoplay = true;
-          video.playsInline = true;
+                  facingMode: "user",
+                },
 
-          video.setAttribute("autoplay", "");
-          video.setAttribute("muted", "");
-          video.setAttribute("playsinline", "");
+                audio: false,
+              });
 
-          await new Promise<void>((resolve) => {
-            if (video.readyState >= 2) {
-              resolve();
-              return;
-            }
-
-            const onLoadedData = () => {
-              video.removeEventListener(
-                "loadeddata",
-                onLoadedData,
+          if (cancelled) {
+            stream
+              .getTracks()
+              .forEach(
+                (track) =>
+                  track.stop(),
               );
 
-              resolve();
-            };
+            return;
+          }
 
-            video.addEventListener(
-              "loadeddata",
-              onLoadedData,
-              { once: true },
+          streamRef.current =
+            stream;
+
+          setCameraStream(
+            stream,
+          );
+
+          // ---------------------------------
+          // ATTACH STREAM TO VIDEO
+          // ---------------------------------
+
+          const video =
+            videoRef.current;
+
+          if (video) {
+            video.srcObject =
+              stream;
+
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline =
+              true;
+
+            video.setAttribute(
+              "autoplay",
+              "",
             );
-          });
 
-          await video.play();
-        }
+            video.setAttribute(
+              "muted",
+              "",
+            );
 
-        console.log(
-          "[ExamAI] Camera stream attached:",
-          {
-            readyState: videoRef.current?.readyState,
-            videoWidth: videoRef.current?.videoWidth,
-            videoHeight: videoRef.current?.videoHeight,
-            hasStream: Boolean(
-              videoRef.current?.srcObject,
-            ),
-          },
-        );
+            video.setAttribute(
+              "playsinline",
+              "",
+            );
 
-        setCameraActive(true);
+            try {
+              await video.play();
+            } catch (error) {
+              console.warn(
+                "[ExamAI] Initial video.play() failed:",
+                error,
+              );
+            }
+          }
 
-        console.log(
-          "[ExamAI] Camera connected",
-        );
-      } catch (error) {
-        console.error(
-          "[ExamAI] CAMERA ERROR:",
-          error,
-        );
+          setCameraActive(
+            true,
+          );
 
-        setCameraError(
-          error instanceof Error
-            ? error.message
-            : "Unable to access camera.",
-        );
+          console.log(
+            "[ExamAI] Camera connected",
+          );
+        } catch (error) {
+          console.error(
+            "[ExamAI] CAMERA ERROR:",
+            error,
+          );
 
-        setCameraActive(false);
+          setCameraError(
+            error instanceof Error
+              ? error.message
+              : "Unable to access camera.",
+          );
 
-        return;
-      }
+          setCameraActive(
+            false,
+          );
 
-      // ---------------------------------
-      // AI MODELS
-      // ---------------------------------
-      try {
-        setFaceStatus(
-          "Loading Face AI...",
-        );
-
-        setObjectStatus(
-          "Loading Object AI...",
-        );
-
-        console.log(
-          "[ExamAI] Loading AI models...",
-        );
-
-        const models =
-          await loadProctoringModels();
-
-        if (cancelled) {
           return;
         }
 
-        detectorRef.current =
-          models.objectDetector;
+        // -----------------------------------
+        // AI MODELS
+        // -----------------------------------
 
-        landmarkerRef.current =
-          models.faceLandmarker;
+        try {
+          setFaceStatus(
+            "Loading Face AI...",
+          );
 
-        setModelsReady(true);
+          setObjectStatus(
+            "Loading Object AI...",
+          );
 
-        setFaceStatus(
-          "Face AI ready",
-        );
+          const models =
+            await loadProctoringModels();
 
-        setObjectStatus(
-          "Object AI ready",
-        );
+          if (cancelled) {
+            return;
+          }
 
-        console.log(
-          "[ExamAI] All AI models ready",
-        );
-      } catch (error) {
-        console.error(
-          "[ExamAI] AI MODEL ERROR:",
-          error,
-        );
+          detectorRef.current =
+            models.objectDetector;
 
-        setFaceStatus(
-          error instanceof Error
-            ? `Face AI error: ${error.message}`
-            : "Face AI failed to load",
-        );
+          landmarkerRef.current =
+            models.faceLandmarker;
 
-        setObjectStatus(
-          "Object AI failed to load",
-        );
-      }
-    };
+          setModelsReady(
+            true,
+          );
+
+          setFaceStatus(
+            "Face AI ready",
+          );
+
+          setObjectStatus(
+            "Object AI ready",
+          );
+        } catch (error) {
+          console.error(
+            "[ExamAI] AI MODEL ERROR:",
+            error,
+          );
+
+          setFaceStatus(
+            error instanceof Error
+              ? `Face AI error: ${error.message}`
+              : "Face AI failed to load",
+          );
+
+          setObjectStatus(
+            "Object AI failed to load",
+          );
+        }
+      };
 
     void initialize();
 
     return () => {
       cancelled = true;
     };
-  }, [enabled, videoRef]);
+  }, [
+    enabled,
+    videoRef,
+  ]);
 
-  // -----------------------------------
-  // CONTINUOUS AI LOOP
-  // -----------------------------------
+  // -----------------------------------------
+  // RE-ATTACH CAMERA STREAM REACTIVELY
+  // -----------------------------------------
+
+  useEffect(() => {
+    if (!cameraStream) {
+      return;
+    }
+
+    const video =
+      videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    video.srcObject =
+      cameraStream;
+
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+
+    const playStream =
+      async () => {
+        try {
+          if (
+            video.srcObject !==
+            cameraStream
+          ) {
+            video.srcObject =
+              cameraStream;
+          }
+
+          await video.play();
+
+          console.log(
+            "[ExamAI] Live camera preview started",
+            {
+              streamActive:
+                cameraStream.active,
+
+              videoWidth:
+                video.videoWidth,
+
+              videoHeight:
+                video.videoHeight,
+
+              readyState:
+                video.readyState,
+            },
+          );
+        } catch (error) {
+          console.error(
+            "[ExamAI] Preview playback error:",
+            error,
+          );
+        }
+      };
+
+    void playStream();
+
+    return () => {
+      // Do not stop camera here.
+      // stop() owns stream cleanup.
+    };
+  }, [
+    cameraStream,
+    videoRef,
+  ]);
+
+  // -----------------------------------------
+  // CONTINUOUS DETECTION LOOP
+  // -----------------------------------------
+
   useEffect(() => {
     if (
       !enabled ||
@@ -811,7 +1003,8 @@ export function useProctoring(
           timerRef.current,
         );
 
-        timerRef.current = null;
+        timerRef.current =
+          null;
       }
     };
   }, [
@@ -821,9 +1014,10 @@ export function useProctoring(
     processFrame,
   ]);
 
-  // -----------------------------------
-  // TAB SWITCH + FULLSCREEN
-  // -----------------------------------
+  // -----------------------------------------
+  // TAB + FULLSCREEN MONITORING
+  // -----------------------------------------
+
   useEffect(() => {
     if (!enabled) {
       return;
@@ -833,7 +1027,7 @@ export function useProctoring(
       () => {
         if (
           document.visibilityState ===
-          "hidden" &&
+            "hidden" &&
           verified
         ) {
           registerViolation(
@@ -847,7 +1041,7 @@ export function useProctoring(
       () => {
         if (
           document.fullscreenElement ===
-          null &&
+            null &&
           verified
         ) {
           registerViolation(
@@ -884,8 +1078,14 @@ export function useProctoring(
     registerViolation,
   ]);
 
+  // -----------------------------------------
+  // RETURN
+  // -----------------------------------------
+
   return {
     cameraActive,
+    cameraStream,
+
     modelsReady,
 
     verifying,
