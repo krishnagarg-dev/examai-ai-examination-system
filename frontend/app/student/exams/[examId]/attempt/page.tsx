@@ -93,5 +93,3 @@ function AutoSubmit({ router, examId }: { router: ReturnType<typeof useRouter>; 
   }, [examId, router]);
   return null;
 }
-
-

@@ -5,71 +5,191 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 export default function ProctoringVerificationPage() {
-  const params = useParams();
+  const params = useParams<{ examId: string }>();
   const router = useRouter();
 
-  const examId = params.examId as string;
+  const examId = params.examId;
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const [cameraStatus, setCameraStatus] = useState("Checking...");
-  const [microphoneStatus, setMicrophoneStatus] = useState("Checking...");
-  const [faceStatus, setFaceStatus] = useState("Waiting for camera...");
+  const [microphoneStatus, setMicrophoneStatus] =
+    useState("Checking...");
+  const [faceStatus, setFaceStatus] =
+    useState("Waiting for camera...");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
+    let cancelled = false;
 
     const startVerification = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
+        setLoading(true);
+        setError("");
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+        if (
+          !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia
+        ) {
+          throw new Error(
+            "Camera and microphone access is not supported by this browser.",
+          );
         }
 
-        setCameraStatus("Camera connected");
-        setMicrophoneStatus("Microphone connected");
-        setFaceStatus("Face detected");
-        setLoading(false);
-      } catch (err) {
-        setError(
-          "Camera or microphone access was denied. Please allow permissions and try again."
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: "user",
+            },
+            audio: true,
+          });
+
+        if (cancelled) {
+          stream
+            .getTracks()
+            .forEach((track) => track.stop());
+
+          return;
+        }
+
+        streamRef.current = stream;
+
+        const video = videoRef.current;
+
+        if (video) {
+          video.srcObject = stream;
+          video.autoplay = true;
+          video.muted = true;
+          video.playsInline = true;
+
+          video.setAttribute("autoplay", "");
+          video.setAttribute("muted", "");
+          video.setAttribute("playsinline", "");
+
+          if (video.readyState < 2) {
+            await new Promise<void>((resolve) => {
+              const handleMetadata = () => {
+                video.removeEventListener(
+                  "loadedmetadata",
+                  handleMetadata,
+                );
+                resolve();
+              };
+
+              video.addEventListener(
+                "loadedmetadata",
+                handleMetadata,
+                { once: true },
+              );
+            });
+          }
+
+          try {
+            await video.play();
+          } catch (playError) {
+            console.warn(
+              "[ExamAI] Camera preview play failed:",
+              playError,
+            );
+          }
+        }
+
+        const videoTrack =
+          stream.getVideoTracks()[0];
+
+        const audioTrack =
+          stream.getAudioTracks()[0];
+
+        setCameraStatus(
+          videoTrack
+            ? "Camera connected"
+            : "Camera unavailable",
         );
 
-        setCameraStatus("Camera unavailable");
-        setMicrophoneStatus("Microphone unavailable");
-        setFaceStatus("Unable to verify");
+        setMicrophoneStatus(
+          audioTrack
+            ? "Microphone connected"
+            : "Microphone unavailable",
+        );
+
+        // Actual face verification is performed
+        // on the attempt page by the AI proctoring hook.
+        setFaceStatus(
+          videoTrack
+            ? "Camera ready"
+            : "Unable to verify",
+        );
+
+        setLoading(false);
+      } catch (err) {
+        console.error(
+          "[ExamAI] Pre-exam camera error:",
+          err,
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Camera or microphone access was denied. Please allow permissions and try again.",
+        );
+
+        setCameraStatus(
+          "Camera unavailable",
+        );
+
+        setMicrophoneStatus(
+          "Microphone unavailable",
+        );
+
+        setFaceStatus(
+          "Unable to verify",
+        );
+
         setLoading(false);
       }
     };
 
-    startVerification();
+    void startVerification();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      cancelled = true;
+
+      if (streamRef.current) {
+        streamRef.current
+          .getTracks()
+          .forEach((track) => track.stop());
+
+        streamRef.current = null;
+      }
+
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
       }
     };
   }, []);
 
   const handleStartExam = async () => {
     try {
-      await document.documentElement.requestFullscreen();
-
-      router.push(`/student/exams/${examId}/attempt`);
-    } catch {
-      router.push(`/student/exams/${examId}/attempt`);
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (error) {
+      console.warn(
+        "[ExamAI] Fullscreen request failed:",
+        error,
+      );
+    } finally {
+      router.push(
+        `/student/exams/${examId}/attempt`,
+      );
     }
   };
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#263446]">
-      {/* HEADER */}
       <header className="border-b border-[#e8eaf0] bg-white px-[30px] py-[18px]">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between">
           <Link
@@ -85,7 +205,10 @@ export default function ProctoringVerificationPage() {
             </div>
 
             <div>
-              <h2 className="text-[16px] font-bold">ExamAI</h2>
+              <h2 className="text-[16px] font-bold">
+                ExamAI
+              </h2>
+
               <p className="text-[9px] text-[#8b94a3]">
                 AI Proctoring Verification
               </p>
@@ -105,13 +228,12 @@ export default function ProctoringVerificationPage() {
           </h1>
 
           <p className="mt-[8px] text-[14px] text-[#7d8796]">
-            Please verify your camera, microphone and examination environment
-            before starting.
+            Please verify your camera, microphone and examination
+            environment before starting.
           </p>
         </div>
 
         <div className="grid gap-[28px] lg:grid-cols-[1.1fr_0.9fr]">
-          {/* CAMERA PREVIEW */}
           <div className="rounded-[24px] border border-[#e8eaf0] bg-white p-[24px]">
             <div className="mb-[18px] flex items-center justify-between">
               <div>
@@ -129,13 +251,13 @@ export default function ProctoringVerificationPage() {
               </span>
             </div>
 
-            <div className="relative overflow-hidden rounded-[20px] bg-[#17202b]">
+            <div className="relative aspect-video overflow-hidden rounded-[20px] bg-[#17202b]">
               <video
                 ref={videoRef}
                 autoPlay
                 muted
                 playsInline
-                className="aspect-video w-full object-cover"
+                className="h-full w-full object-cover"
               />
 
               {loading && (
@@ -145,7 +267,7 @@ export default function ProctoringVerificationPage() {
               )}
 
               {!loading && error && (
-                <div className="absolute inset-0 flex items-center justify-center p-[30px] text-center text-[13px] text-white">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 p-[30px] text-center text-[13px] text-white">
                   {error}
                 </div>
               )}
@@ -156,7 +278,6 @@ export default function ProctoringVerificationPage() {
             </p>
           </div>
 
-          {/* VERIFICATION STATUS */}
           <div className="rounded-[24px] border border-[#e8eaf0] bg-white p-[26px]">
             <h2 className="text-[19px] font-bold">
               Verification Status
@@ -234,7 +355,9 @@ export default function ProctoringVerificationPage() {
 
             {error && (
               <button
-                onClick={() => window.location.reload()}
+                onClick={() =>
+                  window.location.reload()
+                }
                 className="mt-[20px] w-full rounded-[13px] border border-[#63a8b9] px-[20px] py-[12px] text-[13px] font-semibold text-[#63a8b9]"
               >
                 Retry Verification
