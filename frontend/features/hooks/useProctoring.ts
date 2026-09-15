@@ -58,7 +58,6 @@ export function useProctoring(
 
   const detectingRef = useRef(false);
   const mountedRef = useRef(true);
-
   const terminatedRef = useRef(false);
 
   const violationTimesRef = useRef<
@@ -87,7 +86,7 @@ export function useProctoring(
     useState("Waiting for face...");
 
   const [objectStatus, setObjectStatus] =
-    useState("Scanning...");
+    useState("Waiting for AI...");
 
   const [faceBox, setFaceBox] =
     useState<FaceBox | null>(null);
@@ -135,6 +134,7 @@ export function useProctoring(
     landmarkerRef.current = null;
 
     setCameraActive(false);
+    setModelsReady(false);
   }, [videoRef]);
 
   const registerViolation = useCallback(
@@ -142,15 +142,20 @@ export function useProctoring(
       type: ViolationKey,
       message: string,
     ) => {
-      if (!mountedRef.current || terminatedRef.current) {
+      if (
+        !mountedRef.current ||
+        terminatedRef.current
+      ) {
         return;
       }
 
       const now = Date.now();
+
       const lastTime =
         violationTimesRef.current[type] ?? 0;
 
-      // Prevent the same detection from firing every frame.
+      // Prevent repeated counting of the same
+      // violation on every detection interval.
       if (now - lastTime < 3000) {
         return;
       }
@@ -178,7 +183,10 @@ export function useProctoring(
   );
 
   const verifyFaceQuality = useCallback(
-    (faceCount: number, box: FaceBox | null) => {
+    (
+      faceCount: number,
+      box: FaceBox | null,
+    ) => {
       if (faceCount === 0) {
         setFaceStatus("No face detected");
         verificationStartRef.current = null;
@@ -187,7 +195,9 @@ export function useProctoring(
       }
 
       if (faceCount > 1) {
-        setFaceStatus("Multiple faces detected");
+        setFaceStatus(
+          "Multiple faces detected",
+        );
         verificationStartRef.current = null;
         setVerificationProgress(0);
         return false;
@@ -210,10 +220,10 @@ export function useProctoring(
         return false;
       }
 
-      const centerX =
+      const faceCenterX =
         box.x + box.width / 2;
 
-      const centerY =
+      const faceCenterY =
         box.y + box.height / 2;
 
       const videoCenterX =
@@ -232,17 +242,17 @@ export function useProctoring(
 
       const centered =
         Math.abs(
-          centerX - videoCenterX,
+          faceCenterX - videoCenterX,
         ) <= maxOffsetX &&
         Math.abs(
-          centerY - videoCenterY,
+          faceCenterY - videoCenterY,
         ) <= maxOffsetY;
 
       const largeEnough =
         box.width >=
-        PROCTORING_CONFIG.face.minWidth &&
+          PROCTORING_CONFIG.face.minWidth &&
         box.height >=
-        PROCTORING_CONFIG.face.minHeight;
+          PROCTORING_CONFIG.face.minHeight;
 
       if (!centered || !largeEnough) {
         setFaceStatus(
@@ -278,7 +288,7 @@ export function useProctoring(
 
       if (
         video.readyState <
-        HTMLMediaElement.HAVE_CURRENT_DATA ||
+          HTMLMediaElement.HAVE_CURRENT_DATA ||
         video.videoWidth === 0 ||
         video.videoHeight === 0
       ) {
@@ -288,16 +298,13 @@ export function useProctoring(
       detectingRef.current = true;
 
       try {
-        /*
-         * COCO-SSD returns:
-         * {
-         *   class: string,
-         *   score: number,
-         *   bbox: [x, y, width, height]
-         * }
-         */
+        // -------------------------------
+        // COCO-SSD OBJECT DETECTION
+        // -------------------------------
         const detectedObjects =
-          await detectorRef.current.detect(video);
+          await detectorRef.current.detect(
+            video,
+          );
 
         const filteredObjects: DetectedObject[] =
           detectedObjects
@@ -358,6 +365,9 @@ export function useProctoring(
           );
         }
 
+        // -------------------------------
+        // MEDIAPIPE FACE DETECTION
+        // -------------------------------
         const result =
           landmarkerRef.current.detectForVideo(
             video,
@@ -381,7 +391,9 @@ export function useProctoring(
             );
           }
 
-          verificationStartRef.current = null;
+          verificationStartRef.current =
+            null;
+
           setVerificationProgress(0);
 
           return;
@@ -399,7 +411,9 @@ export function useProctoring(
             );
           }
 
-          verificationStartRef.current = null;
+          verificationStartRef.current =
+            null;
+
           setVerificationProgress(0);
 
           return;
@@ -407,6 +421,9 @@ export function useProctoring(
 
         const face = faces[0];
 
+        // -------------------------------
+        // FACE BOUNDING BOX
+        // -------------------------------
         const xs = face.map(
           (point) => point.x,
         );
@@ -417,6 +434,7 @@ export function useProctoring(
 
         const minX = Math.min(...xs);
         const maxX = Math.max(...xs);
+
         const minY = Math.min(...ys);
         const maxY = Math.max(...ys);
 
@@ -440,32 +458,36 @@ export function useProctoring(
 
         setFaceBox(box);
 
-        const detectedLandmarks =
-          IMPORTANT_LANDMARKS
-            .map(
-              (index) =>
-                face[index],
-            )
-            .filter(
-              (
-                point,
-              ): point is NonNullable<typeof point> =>
-                Boolean(point),
-            )
-            .map((point) => ({
-              x:
-                point.x *
-                video.videoWidth,
+        // -------------------------------
+        // IMPORTANT LANDMARKS
+        // -------------------------------
+        const detectedLandmarks: Point[] = [];
 
-              y:
-                point.y *
-                video.videoHeight,
-            }));
+        for (const index of IMPORTANT_LANDMARKS) {
+          const point = face[index];
+
+          if (!point) {
+            continue;
+          }
+
+          detectedLandmarks.push({
+            x:
+              point.x *
+              video.videoWidth,
+
+            y:
+              point.y *
+              video.videoHeight,
+          });
+        }
 
         setLandmarks(
           detectedLandmarks,
         );
 
+        // -------------------------------
+        // FACE QUALITY
+        // -------------------------------
         const goodFace =
           verifyFaceQuality(
             1,
@@ -483,11 +505,9 @@ export function useProctoring(
           return;
         }
 
-        /*
-         * 8-second continuous verification.
-         * Timer is NOT controlled here.
-         * The exam page controls timer using verified state.
-         */
+        // -------------------------------
+        // 8-SECOND VERIFICATION
+        // -------------------------------
         if (!verified) {
           if (
             verificationStartRef.current ===
@@ -504,13 +524,14 @@ export function useProctoring(
               verificationStartRef.current) /
             1000;
 
-          const progress = Math.min(
-            (elapsedSeconds /
-              PROCTORING_CONFIG
-                .verificationSeconds) *
-            100,
-            100,
-          );
+          const progress =
+            Math.min(
+              (elapsedSeconds /
+                PROCTORING_CONFIG
+                  .verificationSeconds) *
+                100,
+              100,
+            );
 
           setVerificationProgress(
             progress,
@@ -524,6 +545,7 @@ export function useProctoring(
             setVerified(true);
             setVerifying(false);
             setVerificationProgress(100);
+
             setFaceStatus(
               "Face verification successful",
             );
@@ -531,7 +553,7 @@ export function useProctoring(
         }
       } catch (error) {
         console.error(
-          "AI proctoring error:",
+          "[ExamAI] Frame processing error:",
           error,
         );
       } finally {
@@ -546,6 +568,9 @@ export function useProctoring(
     ],
   );
 
+  // -----------------------------------
+  // CLEANUP
+  // -----------------------------------
   useEffect(() => {
     mountedRef.current = true;
 
@@ -555,6 +580,9 @@ export function useProctoring(
     };
   }, [stop]);
 
+  // -----------------------------------
+  // CAMERA + AI MODEL INITIALIZATION
+  // -----------------------------------
   useEffect(() => {
     if (!enabled) {
       return;
@@ -563,12 +591,24 @@ export function useProctoring(
     let cancelled = false;
 
     const initialize = async () => {
+      // ---------------------------------
+      // CAMERA
+      // ---------------------------------
       try {
         setCameraError("");
 
+        setFaceStatus(
+          "Starting camera...",
+        );
+
+        setObjectStatus(
+          "Waiting for AI...",
+        );
+
         if (
           !navigator.mediaDevices ||
-          !navigator.mediaDevices.getUserMedia
+          !navigator.mediaDevices
+            .getUserMedia
         ) {
           throw new Error(
             "Camera access is not supported by this browser.",
@@ -615,12 +655,49 @@ export function useProctoring(
             stream;
 
           videoRef.current.muted = true;
-          videoRef.current.playsInline = true;
+          videoRef.current.playsInline =
+            true;
 
           await videoRef.current.play();
         }
 
         setCameraActive(true);
+
+        console.log(
+          "[ExamAI] Camera connected",
+        );
+      } catch (error) {
+        console.error(
+          "[ExamAI] CAMERA ERROR:",
+          error,
+        );
+
+        setCameraError(
+          error instanceof Error
+            ? error.message
+            : "Unable to access camera.",
+        );
+
+        setCameraActive(false);
+
+        return;
+      }
+
+      // ---------------------------------
+      // AI MODELS
+      // ---------------------------------
+      try {
+        setFaceStatus(
+          "Loading Face AI...",
+        );
+
+        setObjectStatus(
+          "Loading Object AI...",
+        );
+
+        console.log(
+          "[ExamAI] Loading AI models...",
+        );
 
         const models =
           await loadProctoringModels();
@@ -636,11 +713,32 @@ export function useProctoring(
           models.faceLandmarker;
 
         setModelsReady(true);
+
+        setFaceStatus(
+          "Face AI ready",
+        );
+
+        setObjectStatus(
+          "Object AI ready",
+        );
+
+        console.log(
+          "[ExamAI] All AI models ready",
+        );
       } catch (error) {
-        setCameraError(
+        console.error(
+          "[ExamAI] AI MODEL ERROR:",
+          error,
+        );
+
+        setFaceStatus(
           error instanceof Error
-            ? error.message
-            : "Unable to access camera.",
+            ? `Face AI error: ${error.message}`
+            : "Face AI failed to load",
+        );
+
+        setObjectStatus(
+          "Object AI failed to load",
         );
       }
     };
@@ -652,6 +750,9 @@ export function useProctoring(
     };
   }, [enabled, videoRef]);
 
+  // -----------------------------------
+  // CONTINUOUS AI LOOP
+  // -----------------------------------
   useEffect(() => {
     if (
       !enabled ||
@@ -662,13 +763,9 @@ export function useProctoring(
     }
 
     timerRef.current =
-      setInterval(
-        () => {
-          void processFrame();
-        },
-        PROCTORING_CONFIG
-          .detectionIntervalMs,
-      );
+      setInterval(() => {
+        void processFrame();
+      }, PROCTORING_CONFIG.detectionIntervalMs);
 
     return () => {
       if (timerRef.current) {
@@ -686,6 +783,9 @@ export function useProctoring(
     processFrame,
   ]);
 
+  // -----------------------------------
+  // TAB SWITCH + FULLSCREEN
+  // -----------------------------------
   useEffect(() => {
     if (!enabled) {
       return;
@@ -695,7 +795,7 @@ export function useProctoring(
       () => {
         if (
           document.visibilityState ===
-          "hidden" &&
+            "hidden" &&
           verified
         ) {
           registerViolation(
@@ -709,7 +809,7 @@ export function useProctoring(
       () => {
         if (
           document.fullscreenElement ===
-          null &&
+            null &&
           verified
         ) {
           registerViolation(
