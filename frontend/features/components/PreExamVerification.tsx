@@ -7,6 +7,7 @@ import {
 
 interface PreExamVerificationProps {
   videoRef: RefObject<HTMLVideoElement | null>;
+  stream: MediaStream | null;
   progress: number;
   cameraActive: boolean;
   modelsReady: boolean;
@@ -17,6 +18,7 @@ interface PreExamVerificationProps {
 
 export function PreExamVerification({
   videoRef,
+  stream,
   progress,
   cameraActive,
   modelsReady,
@@ -25,78 +27,62 @@ export function PreExamVerification({
   cameraError,
 }: PreExamVerificationProps) {
   useEffect(() => {
-    if (!cameraActive) {
+    const video = videoRef.current;
+
+    if (!video || !stream) {
       return;
     }
 
-    let cancelled = false;
-    let attempts = 0;
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
 
-    const attachAndPlay = async () => {
-      if (cancelled) {
-        return;
-      }
+    video.setAttribute("autoplay", "");
+    video.setAttribute("muted", "");
+    video.setAttribute("playsinline", "");
 
-      const video = videoRef.current;
-
-      if (!video) {
-        if (attempts < 20) {
-          attempts += 1;
-          window.setTimeout(attachAndPlay, 250);
-        }
-
-        return;
-      }
-
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      video.setAttribute("autoplay", "");
-      video.setAttribute("muted", "");
-      video.setAttribute("playsinline", "");
-
+    const startPlayback = async () => {
       try {
-        if (video.srcObject) {
-          if (video.readyState < 2) {
-            await new Promise<void>((resolve) => {
-              const onLoadedMetadata = () => {
-                video.removeEventListener(
-                  "loadedmetadata",
-                  onLoadedMetadata,
-                );
-                resolve();
-              };
-
-              video.addEventListener(
-                "loadedmetadata",
-                onLoadedMetadata,
-                { once: true },
-              );
-            });
-          }
-
-          await video.play();
-          return;
+        if (video.srcObject !== stream) {
+          video.srcObject = stream;
         }
+
+        await video.play();
+
+        console.log("[ExamAI] Verification preview started", {
+          streamActive: stream.active,
+          videoTracks: stream.getVideoTracks().length,
+          trackState:
+            stream.getVideoTracks()[0]?.readyState,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          paused: video.paused,
+        });
       } catch (error) {
-        console.warn(
-          "[ExamAI] Video preview play failed:",
+        console.error(
+          "[ExamAI] Verification preview error:",
           error,
         );
       }
-
-      if (!cancelled && attempts < 20) {
-        attempts += 1;
-        window.setTimeout(attachAndPlay, 250);
-      }
     };
 
-    void attachAndPlay();
+    void startPlayback();
+
+    const retryTimer = window.setInterval(() => {
+      if (
+        video.videoWidth === 0 ||
+        video.videoHeight === 0 ||
+        video.paused
+      ) {
+        void startPlayback();
+      }
+    }, 1000);
 
     return () => {
-      cancelled = true;
+      window.clearInterval(retryTimer);
     };
-  }, [cameraActive, videoRef]);
+  }, [stream, videoRef]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f7f8fc] p-6">
@@ -125,7 +111,7 @@ export function PreExamVerification({
             </div>
           )}
 
-          {cameraActive && !cameraError && (
+          {cameraActive && stream && !cameraError && (
             <div className="pointer-events-none absolute left-3 top-3 rounded-lg bg-black/50 px-3 py-1.5 text-[10px] font-semibold text-white">
               Camera Live
             </div>
@@ -141,20 +127,29 @@ export function PreExamVerification({
         <div className="mt-5 grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl bg-[#f5f7fa] p-3 text-[11px]">
             <b>Camera</b>
+
             <div className="mt-1">
-              {cameraActive ? "Connected" : "Starting..."}
+              {cameraActive
+                ? "Connected"
+                : "Starting..."}
             </div>
           </div>
 
           <div className="rounded-xl bg-[#f5f7fa] p-3 text-[11px]">
             <b>Face AI</b>
-            <div className="mt-1">{faceStatus}</div>
+
+            <div className="mt-1">
+              {faceStatus}
+            </div>
           </div>
 
           <div className="rounded-xl bg-[#f5f7fa] p-3 text-[11px]">
             <b>Object AI</b>
+
             <div className="mt-1">
-              {modelsReady ? objectStatus : "Loading..."}
+              {modelsReady
+                ? objectStatus
+                : "Loading..."}
             </div>
           </div>
         </div>

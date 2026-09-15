@@ -294,18 +294,18 @@ export function useProctoring(
       const centered =
         Math.abs(
           faceCenterX -
-            videoCenterX,
+          videoCenterX,
         ) <= maxOffsetX &&
         Math.abs(
           faceCenterY -
-            videoCenterY,
+          videoCenterY,
         ) <= maxOffsetY;
 
       const largeEnough =
         box.width >=
-          PROCTORING_CONFIG.face.minWidth &&
+        PROCTORING_CONFIG.face.minWidth &&
         box.height >=
-          PROCTORING_CONFIG.face.minHeight;
+        PROCTORING_CONFIG.face.minHeight;
 
       if (!centered || !largeEnough) {
         setFaceStatus(
@@ -346,7 +346,7 @@ export function useProctoring(
 
       if (
         video.readyState <
-          HTMLMediaElement.HAVE_CURRENT_DATA ||
+        HTMLMediaElement.HAVE_CURRENT_DATA ||
         video.videoWidth === 0 ||
         video.videoHeight === 0
       ) {
@@ -702,6 +702,48 @@ export function useProctoring(
   // CAMERA + MODELS
   // -----------------------------------------
 
+
+  useEffect(() => {
+  const video = videoRef.current;
+
+  if (!video || !cameraStream) {
+    return;
+  }
+
+  video.srcObject = cameraStream;
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+
+  const startPreview = async () => {
+    try {
+      if (video.srcObject !== cameraStream) {
+        video.srcObject = cameraStream;
+      }
+
+      await video.play();
+
+      console.log("[ExamAI] LIVE VIDEO STARTED", {
+        streamActive: cameraStream.active,
+        videoTracks:
+          cameraStream.getVideoTracks().length,
+        trackState:
+          cameraStream.getVideoTracks()[0]?.readyState,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        paused: video.paused,
+      });
+    } catch (error) {
+      console.error(
+        "[ExamAI] LIVE VIDEO PLAY ERROR:",
+        error,
+      );
+    }
+  };
+
+  void startPreview();
+}, [cameraStream, videoRef]);
+
   useEffect(() => {
     if (!enabled) {
       return;
@@ -769,12 +811,8 @@ export function useProctoring(
             return;
           }
 
-          streamRef.current =
-            stream;
-
-          setCameraStream(
-            stream,
-          );
+          streamRef.current = stream;
+          setCameraStream(stream);
 
           // ---------------------------------
           // ATTACH STREAM TO VIDEO
@@ -783,39 +821,10 @@ export function useProctoring(
           const video =
             videoRef.current;
 
-          if (video) {
-            video.srcObject =
-              stream;
+          streamRef.current = stream;
+          setCameraStream(stream);
+          setCameraActive(true);
 
-            video.autoplay = true;
-            video.muted = true;
-            video.playsInline =
-              true;
-
-            video.setAttribute(
-              "autoplay",
-              "",
-            );
-
-            video.setAttribute(
-              "muted",
-              "",
-            );
-
-            video.setAttribute(
-              "playsinline",
-              "",
-            );
-
-            try {
-              await video.play();
-            } catch (error) {
-              console.warn(
-                "[ExamAI] Initial video.play() failed:",
-                error,
-              );
-            }
-          }
 
           setCameraActive(
             true,
@@ -1027,7 +1036,7 @@ export function useProctoring(
       () => {
         if (
           document.visibilityState ===
-            "hidden" &&
+          "hidden" &&
           verified
         ) {
           registerViolation(
@@ -1041,7 +1050,7 @@ export function useProctoring(
       () => {
         if (
           document.fullscreenElement ===
-            null &&
+          null &&
           verified
         ) {
           registerViolation(
