@@ -250,9 +250,9 @@ export function useProctoring(
 
       const largeEnough =
         box.width >=
-          PROCTORING_CONFIG.face.minWidth &&
+        PROCTORING_CONFIG.face.minWidth &&
         box.height >=
-          PROCTORING_CONFIG.face.minHeight;
+        PROCTORING_CONFIG.face.minHeight;
 
       if (!centered || !largeEnough) {
         setFaceStatus(
@@ -288,7 +288,7 @@ export function useProctoring(
 
       if (
         video.readyState <
-          HTMLMediaElement.HAVE_CURRENT_DATA ||
+        HTMLMediaElement.HAVE_CURRENT_DATA ||
         video.videoWidth === 0 ||
         video.videoHeight === 0
       ) {
@@ -529,7 +529,7 @@ export function useProctoring(
               (elapsedSeconds /
                 PROCTORING_CONFIG
                   .verificationSeconds) *
-                100,
+              100,
               100,
             );
 
@@ -649,17 +649,54 @@ export function useProctoring(
         }
 
         streamRef.current = stream;
-
         if (videoRef.current) {
-          videoRef.current.srcObject =
-            stream;
+          const video = videoRef.current;
 
-          videoRef.current.muted = true;
-          videoRef.current.playsInline =
-            true;
+          video.srcObject = stream;
+          video.muted = true;
+          video.autoplay = true;
+          video.playsInline = true;
 
-          await videoRef.current.play();
+          video.setAttribute("autoplay", "");
+          video.setAttribute("muted", "");
+          video.setAttribute("playsinline", "");
+
+          await new Promise<void>((resolve) => {
+            if (video.readyState >= 2) {
+              resolve();
+              return;
+            }
+
+            const onLoadedData = () => {
+              video.removeEventListener(
+                "loadeddata",
+                onLoadedData,
+              );
+
+              resolve();
+            };
+
+            video.addEventListener(
+              "loadeddata",
+              onLoadedData,
+              { once: true },
+            );
+          });
+
+          await video.play();
         }
+
+        console.log(
+          "[ExamAI] Camera stream attached:",
+          {
+            readyState: videoRef.current?.readyState,
+            videoWidth: videoRef.current?.videoWidth,
+            videoHeight: videoRef.current?.videoHeight,
+            hasStream: Boolean(
+              videoRef.current?.srcObject,
+            ),
+          },
+        );
 
         setCameraActive(true);
 
@@ -795,7 +832,7 @@ export function useProctoring(
       () => {
         if (
           document.visibilityState ===
-            "hidden" &&
+          "hidden" &&
           verified
         ) {
           registerViolation(
@@ -809,7 +846,7 @@ export function useProctoring(
       () => {
         if (
           document.fullscreenElement ===
-            null &&
+          null &&
           verified
         ) {
           registerViolation(

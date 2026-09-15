@@ -7,21 +7,21 @@ import {
   FilesetResolver,
 } from "@mediapipe/tasks-vision";
 
-const WASM_URL =
-  "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm";
-
-const FACE_MODEL_URL =
-  "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+const WASM_URL = "/mediapipe/wasm";
+const FACE_MODEL_URL = "/models/face_landmarker.task";
 
 export async function loadProctoringModels() {
-  console.log("[ExamAI] Starting model initialization...");
+  console.log("[ExamAI] Starting AI initialization...");
 
+  // -----------------------------------------
   // TensorFlow
+  // -----------------------------------------
   await tf.ready();
 
   try {
     await tf.setBackend("webgl");
     await tf.ready();
+
     console.log(
       "[ExamAI] TensorFlow backend:",
       tf.getBackend(),
@@ -33,18 +33,27 @@ export async function loadProctoringModels() {
     );
   }
 
-  // Load independently so one model doesn't hide the other.
-  console.log("[ExamAI] Loading COCO-SSD...");
+  // -----------------------------------------
+  // COCO-SSD
+  // -----------------------------------------
+  console.log(
+    "[ExamAI] Loading COCO-SSD...",
+  );
 
   const objectDetector =
     await cocoSsd.load({
       base: "mobilenet_v2",
     });
 
-  console.log("[ExamAI] COCO-SSD ready");
-
   console.log(
-    "[ExamAI] Loading MediaPipe WASM...",
+    "[ExamAI] COCO-SSD ready",
+  );
+
+  // -----------------------------------------
+  // MediaPipe WASM
+  // -----------------------------------------
+  console.log(
+    "[ExamAI] Loading local MediaPipe WASM...",
   );
 
   const vision =
@@ -56,14 +65,17 @@ export async function loadProctoringModels() {
     "[ExamAI] MediaPipe WASM ready",
   );
 
+  // -----------------------------------------
+  // Face Landmarker
+  // -----------------------------------------
+  console.log(
+    "[ExamAI] Loading local Face Landmarker...",
+  );
+
   let faceLandmarker: FaceLandmarker;
 
-  // CPU first = more reliable on Vercel/browser production.
   try {
-    console.log(
-      "[ExamAI] Loading Face Landmarker with CPU...",
-    );
-
+    // CPU first for maximum browser compatibility.
     faceLandmarker =
       await FaceLandmarker.createFromOptions(
         vision,
@@ -74,6 +86,7 @@ export async function loadProctoringModels() {
           },
 
           runningMode: "VIDEO",
+
           numFaces: 2,
 
           minFaceDetectionConfidence: 0.5,
@@ -85,55 +98,43 @@ export async function loadProctoringModels() {
       );
 
     console.log(
-      "[ExamAI] Face Landmarker ready",
+      "[ExamAI] Face Landmarker ready with CPU",
     );
   } catch (cpuError) {
-    console.error(
-      "[ExamAI] CPU Face Landmarker failed:",
+    console.warn(
+      "[ExamAI] CPU Face Landmarker failed. Trying GPU...",
       cpuError,
     );
 
-    // GPU fallback only if CPU fails.
-    try {
-      console.log(
-        "[ExamAI] Retrying Face Landmarker with GPU...",
-      );
-
-      faceLandmarker =
-        await FaceLandmarker.createFromOptions(
-          vision,
-          {
-            baseOptions: {
-              modelAssetPath:
-                FACE_MODEL_URL,
-              delegate: "GPU",
-            },
-
-            runningMode: "VIDEO",
-            numFaces: 2,
-
-            minFaceDetectionConfidence: 0.5,
-            minFacePresenceConfidence: 0.5,
-            minTrackingConfidence: 0.5,
-
-            outputFaceBlendshapes: true,
+    faceLandmarker =
+      await FaceLandmarker.createFromOptions(
+        vision,
+        {
+          baseOptions: {
+            modelAssetPath: FACE_MODEL_URL,
+            delegate: "GPU",
           },
-        );
 
-      console.log(
-        "[ExamAI] Face Landmarker ready with GPU",
-      );
-    } catch (gpuError) {
-      console.error(
-        "[ExamAI] GPU Face Landmarker failed:",
-        gpuError,
+          runningMode: "VIDEO",
+
+          numFaces: 2,
+
+          minFaceDetectionConfidence: 0.5,
+          minFacePresenceConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+
+          outputFaceBlendshapes: true,
+        },
       );
 
-      throw new Error(
-        "Face AI model could not be initialized.",
-      );
-    }
+    console.log(
+      "[ExamAI] Face Landmarker ready with GPU",
+    );
   }
+
+  console.log(
+    "[ExamAI] All AI models initialized successfully",
+  );
 
   return {
     objectDetector,
