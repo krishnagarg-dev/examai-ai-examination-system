@@ -69,6 +69,7 @@ export function useProctoring(
 
   const [cameraActive, setCameraActive] =
     useState(false);
+    
 
   const [modelsReady, setModelsReady] =
     useState(false);
