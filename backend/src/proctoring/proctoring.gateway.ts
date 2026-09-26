@@ -1,0 +1,150 @@
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  SubscribeMessage,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { AttemptsService } from '../attempts/attempts.service';
+import { Types } from 'mongoose';
+import { AttemptStatus } from '../attempts/schemas/attempt.schema';
+
+const frontendUrl =
+  process.env.FRONTEND_URL ||
+  (process.env.NODE_ENV === 'production' ? false : 'http://localhost:3000');
+
+@WebSocketGateway({
+  cors: {
+    origin: frontendUrl,
+  },
+  namespace: 'proctoring',
+})
+export class ProctoringGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
+  private readonly logger = new Logger(ProctoringGateway.name);
+
+  @WebSocketServer()
+  server: Server;
+
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly attemptsService: AttemptsService,
+  ) {}
+
+  async handleConnection(client: Socket) {
+    try {
+      const token =
+        client.handshake.auth?.token ||
+        client.handshake.headers?.authorization?.split(' ')[1];
+
+      if (!token) {
+        this.logger.error('Client attempted to connect without token');
+        client.disconnect();
+        return;
+      }
+
+      const payload = await this.jwtService.verifyAsync(token, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+      });
+
+      client.data.user = {
+        id: payload.sub,
+        email: payload.email,
+        role: payload.role,
+      };
+
+      this.logger.log(`Client connected to proctoring: ${client.data.user.id}`);
+    } catch (error) {
+      this.logger.error(
+        'JWT verification failed during socket handshake',
+        error.message,
+      );
+      client.disconnect();
+    }
+  }
+
+  handleDisconnect(client: Socket) {
+    this.logger.log(
+      `Client disconnected: ${client.data?.user?.id || 'unknown'}`,
+    );
+  }
+
+  @SubscribeMessage('join-attempt')
+  async joinAttempt(
+    @MessageBody() attemptId: string,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      // 1. Check user context existence
+      if (!client.data?.user?.id) {
+        this.logger.error(
+          'Unauthorized socket operation: missing user context',
+        );
+        client.emit('error', { message: 'Unauthorized' });
+        client.disconnect();
+        return;
+      }
+
+      // 2. Validate ObjectID format
+      if (!attemptId || !Types.ObjectId.isValid(attemptId)) {
+        this.logger.warn(`Invalid attempt ID format: ${attemptId}`);
+        client.emit('error', { message: 'Invalid attempt ID format' });
+        client.disconnect();
+        return;
+      }
+
+      const attempt = await this.attemptsService.findById(attemptId);
+
+      // 3. Verify ownership
+      if (attempt.studentId.toString() !== client.data.user.id) {
+        this.logger.warn(
+          `User ${client.data.user.id} attempted to join unauthorized attempt: ${attemptId}`,
+        );
+        client.emit('error', { message: 'Unauthorized to join this attempt' });
+        client.disconnect();
+        return;
+      }
+
+      // 4. Verify attempt status
+      if (attempt.status !== AttemptStatus.IN_PROGRESS) {
+        this.logger.warn(
+          `Attempt ${attemptId} is not in progress (Status: ${attempt.status})`,
+        );
+        client.emit('error', { message: 'Attempt is not in progress' });
+        client.disconnect();
+        return;
+      }
+
+      // 5. Room Isolation: Leave all previous attempt rooms
+      const rooms = Array.from(client.rooms);
+      for (const room of rooms) {
+        if (room.startsWith('attempt_')) {
+          client.leave(room);
+        }
+      }
+
+      // 6. Join new room and bind state
+      client.join(`attempt_${attemptId}`);
+      client.data.attemptId = attemptId;
+
+      this.logger.log(
+        `Client ${client.data.user.id} securely authorized and joined attempt: ${attemptId}`,
+      );
+      client.emit('joined-attempt', { attemptId });
+    } catch (error) {
+      this.logger.error(`Error in joinAttempt: ${error.message}`);
+      client.emit('error', {
+        message: 'Internal server error during room join',
+      });
+      client.disconnect();
+    }
+  }
+}
