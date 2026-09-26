@@ -1,17 +1,27 @@
 import {
-  IsEnum, IsNumber, IsOptional, IsObject,
-  Min, Max, IsDateString, IsNotEmpty, MaxLength, ValidateNested
-} from 'class-validator';
-import { Type } from 'class-transformer';
-import { ViolationType } from '../schemas/proctoring.schema';
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsObject,
+  Min,
+  Max,
+  IsDateString,
+  IsNotEmpty,
+  MaxLength,
+  ValidateNested,
+} from "class-validator";
+import { Type } from "class-transformer";
+import { ViolationType } from "../schemas/proctoring.schema";
 
 class EventMetadata {
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   x?: number;
+
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   y?: number;
+
   @IsOptional()
   @MaxLength(50)
   target?: string;
@@ -27,7 +37,7 @@ export class ProctoringEventDto {
   clientOccurredAt: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
   @Min(0)
   @Max(1)
   confidence?: number;
