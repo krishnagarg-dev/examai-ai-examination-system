@@ -1,7 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
@@ -10,7 +7,6 @@ import {
   ProctoringDocument,
   ViolationType,
 } from './schemas/proctoring.schema';
-
 
 import { AttemptsService } from '../attempts/attempts.service';
 
@@ -39,33 +35,22 @@ export class ProctoringService {
       throw new BadRequestException('Invalid ID');
     }
 
-    const violation =
-      await this.proctoringModel.create({
-        attemptId: new Types.ObjectId(attemptId),
-        studentId: new Types.ObjectId(studentId),
-        examId: new Types.ObjectId(examId),
-        violationType,
-        description,
-        metadata,
-        occurredAt: new Date(),
-      });
+    const violation = await this.proctoringModel.create({
+      attemptId: new Types.ObjectId(attemptId),
+      studentId: new Types.ObjectId(studentId),
+      examId: new Types.ObjectId(examId),
+      violationType,
+      description,
+      metadata,
+      occurredAt: new Date(),
+    });
 
-    const attempt =
-      await this.attemptsService.incrementViolation(
-        attemptId,
-      );
-
-    if (attempt.violationCount >= 3) {
-      await this.attemptsService.terminate(
-        attemptId,
-        `Maximum proctoring violations reached`,
-      );
-    }
+    const attempt = await this.attemptsService.incrementViolation(attemptId);
 
     return {
       violation,
       violationCount: attempt.violationCount,
-      terminated: attempt.violationCount >= 3,
+      terminated: false,
     };
   }
 
