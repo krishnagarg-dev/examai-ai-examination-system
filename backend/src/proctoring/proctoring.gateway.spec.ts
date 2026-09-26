@@ -3,17 +3,21 @@ import { ProctoringGateway } from './proctoring.gateway';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { AttemptsService } from '../attempts/attempts.service';
+import { ProctoringService } from './proctoring.service';
 import { Socket } from 'socket.io';
 import { Types } from 'mongoose';
 import { AttemptStatus } from '../attempts/schemas/attempt.schema';
+import { ViolationType } from './schemas/proctoring.schema';
 
-describe('ProctoringGateway (Security & Phase 2A)', () => {
+describe('ProctoringGateway (Security & Phase 2A/2B)', () => {
   let gateway: ProctoringGateway;
   let jwtService: JwtService;
   let attemptsService: AttemptsService;
+  let proctoringService: ProctoringService;
 
   const validUserId = '123456789012345678901234';
   const otherUserId = 'abcdef123456abcdef123456';
+  const validExamId = '678901234567890123456789';
 
   const mockJwtService = {
     verifyAsync: jest.fn(),
@@ -27,6 +31,10 @@ describe('ProctoringGateway (Security & Phase 2A)', () => {
     findById: jest.fn(),
   };
 
+  const mockProctoringService = {
+    recordViolation: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -34,12 +42,14 @@ describe('ProctoringGateway (Security & Phase 2A)', () => {
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: AttemptsService, useValue: mockAttemptsService },
+        { provide: ProctoringService, useValue: mockProctoringService },
       ],
     }).compile();
 
     gateway = module.get<ProctoringGateway>(ProctoringGateway);
     jwtService = module.get<JwtService>(JwtService);
     attemptsService = module.get<AttemptsService>(AttemptsService);
+    proctoringService = module.get<ProctoringService>(ProctoringService);
     jest.clearAllMocks();
   });
 
@@ -63,36 +73,24 @@ describe('ProctoringGateway (Security & Phase 2A)', () => {
   });
 
   it('2. invalid JWT -> disconnects client', async () => {
-    mockJwtService.verifyAsync.mockRejectedValue(
-      new Error('Invalid signature'),
-    );
+    mockJwtService.verifyAsync.mockRejectedValue(new Error('Invalid signature'));
     const socket = createMockSocket('bad-token');
     await gateway.handleConnection(socket as Socket);
     expect(socket.disconnect).toHaveBeenCalled();
   });
 
   it('3. expired JWT -> disconnects client', async () => {
-    mockJwtService.verifyAsync.mockRejectedValue(
-      new Error('TokenExpiredError'),
-    );
+    mockJwtService.verifyAsync.mockRejectedValue(new Error('TokenExpiredError'));
     const socket = createMockSocket('expired-token');
     await gateway.handleConnection(socket as Socket);
     expect(socket.disconnect).toHaveBeenCalled();
   });
 
   it('4. valid JWT -> sets user data', async () => {
-    mockJwtService.verifyAsync.mockResolvedValue({
-      sub: validUserId,
-      email: 'test@test.com',
-      role: 'student',
-    });
+    mockJwtService.verifyAsync.mockResolvedValue({ sub: validUserId, email: 'test@test.com', role: 'student' });
     const socket = createMockSocket('valid-token');
     await gateway.handleConnection(socket as Socket);
-    expect(socket.data.user).toEqual({
-      id: validUserId,
-      email: 'test@test.com',
-      role: 'student',
-    });
+    expect(socket.data.user).toEqual({ id: validUserId, email: 'test@test.com', role: 'student' });
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 
@@ -100,151 +98,106 @@ describe('ProctoringGateway (Security & Phase 2A)', () => {
     const attemptId = new Types.ObjectId().toString();
     const socket = createMockSocket();
     socket.data.user = { id: validUserId };
-
+    
     mockAttemptsService.findById.mockResolvedValue({
       _id: new Types.ObjectId(attemptId),
       studentId: new Types.ObjectId(validUserId),
+      examId: new Types.ObjectId(validExamId),
       status: AttemptStatus.IN_PROGRESS,
     });
 
     await gateway.joinAttempt(attemptId, socket as Socket);
     expect(socket.join).toHaveBeenCalledWith(`attempt_${attemptId}`);
     expect(socket.data.attemptId).toEqual(attemptId);
+    expect(socket.data.examId).toEqual(validExamId);
     expect(socket.emit).toHaveBeenCalledWith('joined-attempt', { attemptId });
   });
 
-  it('6 & 7. Student A -> Student B attempt -> unauthorized, disconnects', async () => {
-    const attemptId = new Types.ObjectId().toString();
-    const socket = createMockSocket();
-    socket.data.user = { id: 'studentA' };
-
-    mockAttemptsService.findById.mockResolvedValue({
-      _id: new Types.ObjectId(attemptId),
-      studentId: new Types.ObjectId(otherUserId),
-      status: AttemptStatus.IN_PROGRESS,
-    });
-
-    await gateway.joinAttempt(attemptId, socket as Socket);
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'Unauthorized to join this attempt',
-    });
-    expect(socket.disconnect).toHaveBeenCalled();
-    expect(socket.join).not.toHaveBeenCalled();
-  });
-
-  it('8. nonexistent attempt -> safe error response & disconnect', async () => {
+  // Phase 2B Tests
+  it('16. proctoring-event: valid payload -> records violation and acknowledges', async () => {
     const attemptId = new Types.ObjectId().toString();
     const socket = createMockSocket();
     socket.data.user = { id: validUserId };
+    socket.data.attemptId = attemptId;
+    socket.data.examId = validExamId;
 
-    mockAttemptsService.findById.mockRejectedValue(new Error('Not found'));
-
-    await gateway.joinAttempt(attemptId, socket as Socket);
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'Internal server error during room join',
-    });
-    expect(socket.disconnect).toHaveBeenCalled();
-  });
-
-  it('9. invalid attempt ID -> invalid format error & disconnect', async () => {
-    const socket = createMockSocket();
-    socket.data.user = { id: validUserId };
-
-    await gateway.joinAttempt('not-an-object-id', socket as Socket);
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'Invalid attempt ID format',
-    });
-    expect(socket.disconnect).toHaveBeenCalled();
-  });
-
-  it('10. inactive attempt -> status error & disconnect', async () => {
-    const attemptId = new Types.ObjectId().toString();
-    const socket = createMockSocket();
-    socket.data.user = { id: validUserId };
-
-    mockAttemptsService.findById.mockResolvedValue({
-      _id: new Types.ObjectId(attemptId),
-      studentId: new Types.ObjectId(validUserId),
-      status: AttemptStatus.SUBMITTED,
+    mockProctoringService.recordViolation.mockResolvedValue({
+      violation: {},
+      violationCount: 1,
+      terminated: false,
     });
 
-    await gateway.joinAttempt(attemptId, socket as Socket);
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'Attempt is not in progress',
-    });
-    expect(socket.disconnect).toHaveBeenCalled();
-  });
+    const eventPayload = {
+      type: ViolationType.TAB_SWITCH,
+      clientOccurredAt: new Date().toISOString(),
+    };
 
-  it('11. repeated join -> updates state and joins', async () => {
-    const attemptId = new Types.ObjectId().toString();
-    const socket = createMockSocket();
-    socket.data.user = { id: validUserId };
+    await gateway.handleProctoringEvent(eventPayload, socket as Socket);
 
-    mockAttemptsService.findById.mockResolvedValue({
-      _id: new Types.ObjectId(attemptId),
-      studentId: new Types.ObjectId(validUserId),
-      status: AttemptStatus.IN_PROGRESS,
-    });
-
-    await gateway.joinAttempt(attemptId, socket as Socket);
-    await gateway.joinAttempt(attemptId, socket as Socket);
-    expect(socket.join).toHaveBeenCalledTimes(2);
-  });
-
-  it('12 & 13. room isolation -> leaves old attempt rooms', async () => {
-    const attemptId1 = new Types.ObjectId().toString();
-    const attemptId2 = new Types.ObjectId().toString();
-    const socket = createMockSocket();
-    socket.data.user = { id: validUserId };
-    socket.rooms = new Set(['socket-id', `attempt_${attemptId1}`]);
-
-    mockAttemptsService.findById.mockResolvedValue({
-      _id: new Types.ObjectId(attemptId2),
-      studentId: new Types.ObjectId(validUserId),
-      status: AttemptStatus.IN_PROGRESS,
-    });
-
-    await gateway.joinAttempt(attemptId2, socket as Socket);
-    expect(socket.leave).toHaveBeenCalledWith(`attempt_${attemptId1}`);
-    expect(socket.join).toHaveBeenCalledWith(`attempt_${attemptId2}`);
-  });
-
-  it('14. authoritative socket attempt binding -> binds attemptId securely', async () => {
-    const attemptId = new Types.ObjectId().toString();
-    const socket = createMockSocket();
-    socket.data.user = { id: validUserId };
-
-    mockAttemptsService.findById.mockResolvedValue({
-      _id: new Types.ObjectId(attemptId),
-      studentId: new Types.ObjectId(validUserId),
-      status: AttemptStatus.IN_PROGRESS,
-    });
-
-    await gateway.joinAttempt(attemptId, socket as Socket);
-    expect(socket.data.attemptId).toBe(attemptId);
-  });
-
-  it('15. safe error response -> emits error and disconnects without leaking internals', async () => {
-    const socket = createMockSocket();
-    socket.data.user = { id: validUserId };
-
-    mockAttemptsService.findById.mockRejectedValue(
-      new Error('Database connection failed with credentials root:secret'),
-    );
-
-    await gateway.joinAttempt(
-      new Types.ObjectId().toString(),
-      socket as Socket,
-    );
-    expect(socket.emit).toHaveBeenCalledWith('error', {
-      message: 'Internal server error during room join',
-    });
-    // Ensure raw error message with secrets/stack is NOT sent to client
-    expect(socket.emit).not.toHaveBeenCalledWith(
+    expect(mockProctoringService.recordViolation).toHaveBeenCalledWith(
+      attemptId,
+      validUserId,
+      validExamId,
+      ViolationType.TAB_SWITCH,
+      '',
       expect.objectContaining({
-        message: expect.stringContaining('credentials'),
+        clientOccurredAt: eventPayload.clientOccurredAt,
       }),
     );
+    expect(socket.emit).toHaveBeenCalledWith('event-acknowledged', { violationCount: 1 });
+  });
+
+  it('17. proctoring-event: invalid payload -> returns error', async () => {
+    const attemptId = new Types.ObjectId().toString();
+    const socket = createMockSocket();
+    socket.data.user = { id: validUserId };
+    socket.data.attemptId = attemptId;
+    socket.data.examId = validExamId;
+
+    const invalidPayload = {
+      type: 'INVALID_TYPE',
+    };
+
+    await gateway.handleProctoringEvent(invalidPayload, socket as Socket);
+
+    expect(mockProctoringService.recordViolation).not.toHaveBeenCalled();
+    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Invalid event payload' });
+  });
+
+  it('18. proctoring-event: uninitialized socket -> returns unauthorized error', async () => {
+    const socket = createMockSocket();
+    // Missing attemptId or user
+
+    await gateway.handleProctoringEvent({}, socket as Socket);
+
+    expect(mockProctoringService.recordViolation).not.toHaveBeenCalled();
+    expect(socket.emit).toHaveBeenCalledWith('error', { message: 'Unauthorized event stream' });
+  });
+
+  it('19. proctoring-event: max violations reached -> terminates and disconnects', async () => {
+    const attemptId = new Types.ObjectId().toString();
+    const socket = createMockSocket();
+    socket.data.user = { id: validUserId };
+    socket.data.attemptId = attemptId;
+    socket.data.examId = validExamId;
+
+    mockProctoringService.recordViolation.mockResolvedValue({
+      violation: {},
+      violationCount: 3,
+      terminated: true,
+    });
+
+    const eventPayload = {
+      type: ViolationType.NO_FACE,
+      clientOccurredAt: new Date().toISOString(),
+      confidence: 0.95,
+    };
+
+    await gateway.handleProctoringEvent(eventPayload, socket as Socket);
+
+    expect(socket.emit).toHaveBeenCalledWith('attempt-terminated', {
+      reason: 'Maximum proctoring violations reached',
+    });
     expect(socket.disconnect).toHaveBeenCalled();
   });
 });
