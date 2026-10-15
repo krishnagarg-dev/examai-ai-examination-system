@@ -128,7 +128,7 @@ export default function TeacherExams() {
     }
 
     if (status === "Upcoming") {
-      return "bg-[#eef8fa] text-[#4f9eb0]";
+      return "bg-[#f0eff9] text-[#716bb0]";
     }
 
     return "bg-[#f1f2f5] text-[#748092]";
@@ -153,7 +153,7 @@ export default function TeacherExams() {
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
 
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#716bb0] text-[22px] text-white shadow-[0_8px_20px_rgba(113,107,176,0.25)]">
               ✦
             </div>
 
@@ -176,7 +176,7 @@ export default function TeacherExams() {
                 href={item.href}
                 className={`flex items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-[14px] font-medium transition-all ${
                   pathname === item.href
-                    ? "bg-[#63a8b9] text-white shadow-[0_8px_20px_rgba(99,168,185,0.18)]"
+                    ? "bg-[#716bb0] text-white shadow-[0_8px_20px_rgba(113,107,176,0.18)]"
                     : "text-[#687384] hover:bg-[#f4f6f9]"
                 }`}
               >
@@ -225,7 +225,7 @@ export default function TeacherExams() {
           {/* HEADER */}
           <div className="flex flex-col justify-between gap-[20px] lg:flex-row lg:items-center">
             <div>
-              <p className="mb-[7px] text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
+              <p className="mb-[7px] text-[12px] font-semibold tracking-[1px] text-[#716bb0]">
                 EXAMINATION MANAGEMENT
               </p>
 
@@ -240,7 +240,7 @@ export default function TeacherExams() {
 
             <Link
               href="/teacher/create-exam"
-              className="flex items-center justify-center gap-[8px] rounded-[13px] bg-[#63a8b9] px-[20px] py-[13px] text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(99,168,185,0.18)]"
+              className="flex items-center justify-center gap-[8px] rounded-[13px] bg-[#716bb0] px-[20px] py-[13px] text-[13px] font-semibold text-white shadow-[0_8px_20px_rgba(113,107,176,0.18)]"
             >
               <Plus size={17} />
               Create New Exam
@@ -251,7 +251,7 @@ export default function TeacherExams() {
           <div className="mt-[30px] grid grid-cols-1 gap-[18px] sm:grid-cols-2 xl:grid-cols-4">
 
             <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[21px]">
-              <div className="flex h-[43px] w-[43px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+              <div className="flex h-[43px] w-[43px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                 <ClipboardList size={20} />
               </div>
 
@@ -265,7 +265,7 @@ export default function TeacherExams() {
             </div>
 
             <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[21px]">
-              <div className="flex h-[43px] w-[43px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+              <div className="flex h-[43px] w-[43px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                 <CalendarDays size={20} />
               </div>
 
@@ -374,7 +374,7 @@ export default function TeacherExams() {
 
                       <div className="flex items-start gap-[15px]">
 
-                        <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[14px] bg-[#eef8fa] text-[#63a8b9]">
+                        <div className="flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[14px] bg-[#f0eff9] text-[#716bb0]">
                           <FileText size={21} />
                         </div>
 
@@ -436,7 +436,7 @@ export default function TeacherExams() {
                         </button>
 
                         {exam.status !== "Completed" && (
-                          <button className="flex items-center gap-[7px] rounded-[11px] bg-[#eef8fa] px-[14px] py-[10px] text-[11px] font-semibold text-[#63a8b9] hover:opacity-80">
+                          <button className="flex items-center gap-[7px] rounded-[11px] bg-[#f0eff9] px-[14px] py-[10px] text-[11px] font-semibold text-[#716bb0] hover:opacity-80">
                             <Edit3 size={15} />
                             Edit
                           </button>
