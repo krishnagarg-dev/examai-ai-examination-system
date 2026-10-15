@@ -155,7 +155,7 @@ export default function CreateExamPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("examai-auth");
-    router.push("/login");
+    router.push("/teacher/login");
   };
 
   return (

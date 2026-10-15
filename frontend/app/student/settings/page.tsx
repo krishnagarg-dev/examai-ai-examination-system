@@ -28,7 +28,7 @@ export default function StudentSettings() {
 
   const handleLogout = () => {
     localStorage.removeItem("examai-auth");
-    router.push("/login");
+    router.push("/student/login");
   };
 
   return (

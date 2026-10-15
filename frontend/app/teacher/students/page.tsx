@@ -112,7 +112,7 @@ export default function TeacherStudentsPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("examai-auth");
-    router.push("/login");
+    router.push("/teacher/login");
   };
 
   return (

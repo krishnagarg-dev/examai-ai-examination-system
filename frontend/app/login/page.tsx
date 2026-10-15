@@ -21,7 +21,7 @@ export default function LoginPage() {
 
     localStorage.setItem("examai-auth", "true");
 
-    router.push("/dashboard");
+    router.push("/admin/dashboard");
   };
 
   return (

@@ -119,7 +119,7 @@ export default function TeacherExams() {
 
   const handleLogout = () => {
     localStorage.removeItem("examai-auth");
-    router.push("/login");
+    router.push("/teacher/login");
   };
 
   const getStatusClass = (status: string) => {
