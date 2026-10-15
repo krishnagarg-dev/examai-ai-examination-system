@@ -157,11 +157,17 @@ describe('AiService', () => {
     ).rejects.toThrow(InternalServerErrorException);
   });
 
+
   it('7. Missing API key configuration', async () => {
+    service = await createTestingModule({
+      AI_SERVICE_URL: 'http://mock-ai',
+      // Missing AI_SERVICE_API_KEY
+    });
+
     await expect(
-      createTestingModule({
-        AI_SERVICE_URL: 'http://mock-ai',
-        // Missing AI_SERVICE_API_KEY
+      service.generateQuestion({
+        topic: 'math',
+        difficulty: Difficulty.EASY,
       }),
     ).rejects.toThrow('Missing config AI_SERVICE_API_KEY');
   });

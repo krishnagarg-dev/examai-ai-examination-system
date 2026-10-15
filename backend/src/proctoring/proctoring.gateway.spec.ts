@@ -8,6 +8,7 @@ import { Socket } from "socket.io";
 import { Types } from "mongoose";
 import { AttemptStatus } from "../attempts/schemas/attempt.schema";
 import { ViolationType } from "./schemas/proctoring.schema";
+import { AiService } from '../ai/ai.service';
 
 describe("ProctoringGateway (Security Matrix & Phase 2B)", () => {
   let gateway: ProctoringGateway;
@@ -36,13 +37,21 @@ describe("ProctoringGateway (Security Matrix & Phase 2B)", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
+
       providers: [
         ProctoringGateway,
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: AttemptsService, useValue: mockAttemptsService },
         { provide: ProctoringService, useValue: mockProctoringService },
+        {
+          provide: AiService,
+          useValue: {
+            proctoringInference: jest.fn(),
+          },
+        },
       ],
+
     }).compile();
 
     gateway = module.get<ProctoringGateway>(ProctoringGateway);
@@ -98,7 +107,7 @@ describe("ProctoringGateway (Security Matrix & Phase 2B)", () => {
     const attemptId = new Types.ObjectId().toString();
     const socket = createMockSocket();
     socket.data.user = { id: validUserId };
-    
+
     mockAttemptsService.findById.mockResolvedValue({
       _id: new Types.ObjectId(attemptId),
       studentId: new Types.ObjectId(validUserId),
@@ -143,8 +152,8 @@ describe("ProctoringGateway (Security Matrix & Phase 2B)", () => {
         clientOccurredAt: eventPayload.clientOccurredAt,
       }),
     );
-    expect(socket.emit).toHaveBeenCalledWith("event-acknowledged", { 
-      message: "Event recorded successfully" 
+    expect(socket.emit).toHaveBeenCalledWith("event-acknowledged", {
+      message: "Event recorded successfully"
     });
   });
 
@@ -213,10 +222,14 @@ describe("ProctoringGateway (Security Matrix & Phase 2B)", () => {
     socket.data.attemptId = attemptId;
     socket.data.examId = validExamId;
 
+
     mockAttemptsService.findById.mockResolvedValue({
       _id: new Types.ObjectId(attemptId),
+      studentId: new Types.ObjectId(validUserId),
+      examId: new Types.ObjectId(validExamId),
       status: AttemptStatus.IN_PROGRESS,
     });
+
 
     mockProctoringService.recordViolation.mockResolvedValue({
       violation: {},
