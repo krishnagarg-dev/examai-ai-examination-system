@@ -20,10 +20,7 @@ export class AttemptsService {
   ) {}
 
   async start(studentId: string, examId: string) {
-    if (
-      !Types.ObjectId.isValid(studentId) ||
-      !Types.ObjectId.isValid(examId)
-    ) {
+    if (!Types.ObjectId.isValid(studentId) || !Types.ObjectId.isValid(examId)) {
       throw new BadRequestException('Invalid student or exam ID');
     }
 
@@ -68,8 +65,7 @@ export class AttemptsService {
 
     attempt.status = AttemptStatus.TERMINATED;
     attempt.terminatedAt = new Date();
-    attempt.terminationReason =
-      reason || 'Proctoring violation';
+    attempt.terminationReason = reason || 'Proctoring violation';
 
     return attempt.save();
   }

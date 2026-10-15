@@ -6,7 +6,7 @@ import {
   IsOptional,
   IsString,
   Min,
-} from "class-validator";
+} from 'class-validator';
 
 export class CreateExamDto {
   @IsString()
@@ -40,6 +40,6 @@ export class CreateExamDto {
   endTime!: string;
 
   @IsOptional()
-  @IsIn(["scheduled", "live", "completed"])
+  @IsIn(['scheduled', 'live', 'completed'])
   status?: string;
 }

@@ -1,13 +1,13 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { HydratedDocument, Types } from "mongoose";
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type ExamDocument = HydratedDocument<Exam>;
 
 export enum ExamStatus {
-  DRAFT = "draft",
-  SCHEDULED = "scheduled",
-  LIVE = "live",
-  COMPLETED = "completed",
+  DRAFT = 'draft',
+  SCHEDULED = 'scheduled',
+  LIVE = 'live',
+  COMPLETED = 'completed',
 }
 
 @Schema({ timestamps: true })
@@ -68,7 +68,7 @@ export class Exam {
 
   @Prop({
     type: Types.ObjectId,
-    ref: "User",
+    ref: 'User',
     required: true,
   })
   createdBy!: Types.ObjectId;

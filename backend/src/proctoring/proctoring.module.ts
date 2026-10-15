@@ -7,11 +7,13 @@ import { Proctoring, ProctoringSchema } from './schemas/proctoring.schema';
 
 import { AttemptsModule } from '../attempts/attempts.module';
 import { AuthModule } from '../auth/auth.module';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
     AttemptsModule,
     AuthModule,
+    AiModule,
     MongooseModule.forFeature([
       {
         name: Proctoring.name,

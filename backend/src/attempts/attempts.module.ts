@@ -3,10 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 import { AttemptsController } from './attempts.controller';
 import { AttemptsService } from './attempts.service';
-import {
-  Attempt,
-  AttemptSchema,
-} from './schemas/attempt.schema';
+import { Attempt, AttemptSchema } from './schemas/attempt.schema';
 
 @Module({
   imports: [

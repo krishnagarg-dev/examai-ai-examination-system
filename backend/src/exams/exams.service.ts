@@ -2,11 +2,11 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-} from "@nestjs/common";
-import { InjectModel } from "@nestjs/mongoose";
-import { Model } from "mongoose";
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 
-import { Exam, ExamDocument } from "./schemas/exam.schema";
+import { Exam, ExamDocument } from './schemas/exam.schema';
 
 type CreateExamDto = {
   code: string;
@@ -22,40 +22,26 @@ export class ExamsService {
     private readonly examModel: Model<ExamDocument>,
   ) {}
 
-  async create(
-    createExamDto: CreateExamDto,
-    userId: string,
-  ) {
-    const normalizedCode = createExamDto.code
-      .trim()
-      .toUpperCase();
+  async create(createExamDto: CreateExamDto, userId: string) {
+    const normalizedCode = createExamDto.code.trim().toUpperCase();
 
     const existingExam = await this.examModel.findOne({
       code: normalizedCode,
     });
 
     if (existingExam) {
-      throw new BadRequestException(
-        "An exam with this code already exists",
-      );
+      throw new BadRequestException('An exam with this code already exists');
     }
 
     const startTime = new Date(createExamDto.startTime);
     const endTime = new Date(createExamDto.endTime);
 
-    if (
-      Number.isNaN(startTime.getTime()) ||
-      Number.isNaN(endTime.getTime())
-    ) {
-      throw new BadRequestException(
-        "Invalid examination date or time",
-      );
+    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+      throw new BadRequestException('Invalid examination date or time');
     }
 
     if (endTime <= startTime) {
-      throw new BadRequestException(
-        "End time must be after start time",
-      );
+      throw new BadRequestException('End time must be after start time');
     }
 
     const exam = new this.examModel({
@@ -69,20 +55,17 @@ export class ExamsService {
     return exam.save();
   }
 
-  async findAll(user: {
-    id: string;
-    role: string;
-  }) {
+  async findAll(user: { id: string; role: string }) {
     let filter: Record<string, unknown>;
 
-    if (user.role === "admin") {
+    if (user.role === 'admin') {
       // Admin can see all exams.
       filter = {};
-    } else if (user.role === "student") {
+    } else if (user.role === 'student') {
       // Students can see scheduled and live exams.
       filter = {
         status: {
-          $in: ["scheduled", "live"],
+          $in: ['scheduled', 'live'],
         },
       };
     } else {
@@ -94,7 +77,7 @@ export class ExamsService {
 
     return this.examModel
       .find(filter)
-      .populate("createdBy", "name email role")
+      .populate('createdBy', 'name email role')
       .sort({ createdAt: -1 })
       .exec();
   }
@@ -102,11 +85,11 @@ export class ExamsService {
   async findOne(id: string) {
     const exam = await this.examModel
       .findById(id)
-      .populate("createdBy", "name email role")
+      .populate('createdBy', 'name email role')
       .exec();
 
     if (!exam) {
-      throw new NotFoundException("Exam not found");
+      throw new NotFoundException('Exam not found');
     }
 
     return exam;

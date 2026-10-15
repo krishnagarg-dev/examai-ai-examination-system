@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { ExamsModule } from './exams/exams.module';
 import { AttemptsModule } from './attempts/attempts.module';
 import { ProctoringModule } from './proctoring/proctoring.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProctoringModule } from './proctoring/proctoring.module';
     ExamsModule,
     AttemptsModule,
     ProctoringModule,
+    AiModule,
   ],
 
   controllers: [AppController],

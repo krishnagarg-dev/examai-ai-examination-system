@@ -21,18 +21,13 @@ export class AuthService {
   ) {}
 
   async register(registerDto: RegisterDto) {
-    const existingUser = await this.usersService.findByEmail(
-      registerDto.email,
-    );
+    const existingUser = await this.usersService.findByEmail(registerDto.email);
 
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(
-      registerDto.password,
-      10,
-    );
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
     const user = await this.usersService.create({
       name: registerDto.name,
@@ -60,14 +55,10 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(
-      loginDto.email,
-    );
+    const user = await this.usersService.findByEmail(loginDto.email);
 
     if (!user) {
-      throw new UnauthorizedException(
-        'Invalid email or password',
-      );
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -76,9 +67,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException(
-        'Invalid email or password',
-      );
+      throw new UnauthorizedException('Invalid email or password');
     }
 
     const token = this.generateToken(
@@ -99,11 +88,7 @@ export class AuthService {
     };
   }
 
-  private generateToken(
-    userId: string,
-    email: string,
-    role: string,
-  ) {
+  private generateToken(userId: string, email: string, role: string) {
     return this.jwtService.sign({
       sub: userId,
       email,

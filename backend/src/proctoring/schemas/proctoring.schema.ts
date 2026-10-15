@@ -71,5 +71,4 @@ export class Proctoring {
   metadata!: Record<string, unknown>;
 }
 
-export const ProctoringSchema =
-  SchemaFactory.createForClass(Proctoring);
+export const ProctoringSchema = SchemaFactory.createForClass(Proctoring);
