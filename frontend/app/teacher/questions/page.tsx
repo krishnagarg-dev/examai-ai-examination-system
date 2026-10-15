@@ -100,7 +100,7 @@ export default function TeacherQuestionsPage() {
         {/* SIDEBAR */}
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#716bb0] text-[22px] text-white">
               ✦
             </div>
 
@@ -123,7 +123,7 @@ export default function TeacherQuestionsPage() {
                 href={item.href}
                 className={`flex items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-[14px] font-medium transition-all ${
                   pathname === item.href
-                    ? "bg-[#63a8b9] text-white"
+                    ? "bg-[#716bb0] text-white"
                     : "text-[#687384] hover:bg-[#f4f6f9]"
                 }`}
               >
@@ -148,7 +148,7 @@ export default function TeacherQuestionsPage() {
         <section className="flex-1 p-[38px]">
           <div className="flex flex-col justify-between gap-[20px] md:flex-row md:items-center">
             <div>
-              <p className="text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
+              <p className="text-[12px] font-semibold tracking-[1px] text-[#716bb0]">
                 QUESTION MANAGEMENT
               </p>
 
@@ -163,7 +163,7 @@ export default function TeacherQuestionsPage() {
 
             <button
               onClick={() => alert("Add Question form will open here")}
-              className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#63a8b9] px-[18px] py-[12px] text-[13px] font-semibold text-white transition hover:opacity-90"
+              className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#716bb0] px-[18px] py-[12px] text-[13px] font-semibold text-white transition hover:opacity-90"
             >
               <Plus size={17} />
               Add New Question
@@ -173,7 +173,7 @@ export default function TeacherQuestionsPage() {
           {/* STATS */}
           <div className="mt-[30px] grid grid-cols-1 gap-[18px] sm:grid-cols-3">
             <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[22px]">
-              <FileQuestion size={22} className="text-[#63a8b9]" />
+              <FileQuestion size={22} className="text-[#716bb0]" />
               <h2 className="mt-[15px] text-[28px] font-bold">148</h2>
               <p className="text-[13px] text-[#7d8796]">Total Questions</p>
             </div>
@@ -263,7 +263,7 @@ export default function TeacherQuestionsPage() {
                 >
                   <div className="flex flex-col gap-[16px] xl:flex-row xl:items-center xl:justify-between">
                     <div className="flex gap-[14px]">
-                      <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-[#eef8fa] text-[12px] font-bold text-[#63a8b9]">
+                      <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-[#f0eff9] text-[12px] font-bold text-[#716bb0]">
                         {index + 1}
                       </div>
 
@@ -277,7 +277,7 @@ export default function TeacherQuestionsPage() {
                             {question.subject}
                           </span>
 
-                          <span className="rounded-full bg-[#eef8fa] px-[9px] py-[4px] text-[10px] font-medium text-[#63a8b9]">
+                          <span className="rounded-full bg-[#f0eff9] px-[9px] py-[4px] text-[10px] font-medium text-[#716bb0]">
                             {question.type}
                           </span>
 

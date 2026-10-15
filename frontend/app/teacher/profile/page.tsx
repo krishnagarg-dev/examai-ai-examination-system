@@ -63,7 +63,7 @@ export default function TeacherProfilePage() {
         {/* SIDEBAR */}
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#716bb0] text-[22px] text-white">
               ✦
             </div>
 
@@ -86,7 +86,7 @@ export default function TeacherProfilePage() {
                 href={item.href}
                 className={`flex items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-[14px] font-medium transition-all ${
                   pathname === item.href
-                    ? "bg-[#63a8b9] text-white"
+                    ? "bg-[#716bb0] text-white"
                     : "text-[#687384] hover:bg-[#f4f6f9]"
                 }`}
               >
@@ -105,7 +105,7 @@ export default function TeacherProfilePage() {
               href="/teacher/profile"
               className={`flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium ${
                 pathname === "/teacher/profile"
-                  ? "bg-[#63a8b9] text-white"
+                  ? "bg-[#716bb0] text-white"
                   : "text-[#667386] hover:bg-[#f6f8fb]"
               }`}
             >
@@ -135,7 +135,7 @@ export default function TeacherProfilePage() {
         <section className="flex-1 p-[38px]">
           <div className="flex flex-col justify-between gap-[20px] md:flex-row md:items-center">
             <div>
-              <p className="text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
+              <p className="text-[12px] font-semibold tracking-[1px] text-[#716bb0]">
                 ACCOUNT MANAGEMENT
               </p>
 
@@ -151,7 +151,7 @@ export default function TeacherProfilePage() {
             {!isEditing ? (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#63a8b9] px-[18px] py-[12px] text-[13px] font-semibold text-white hover:opacity-90"
+                className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#716bb0] px-[18px] py-[12px] text-[13px] font-semibold text-white hover:opacity-90"
               >
                 <Edit3 size={16} />
                 Edit Profile
@@ -168,7 +168,7 @@ export default function TeacherProfilePage() {
 
                 <button
                   onClick={handleSave}
-                  className="flex items-center gap-[7px] rounded-[12px] bg-[#63a8b9] px-[16px] py-[12px] text-[13px] font-semibold text-white"
+                  className="flex items-center gap-[7px] rounded-[12px] bg-[#716bb0] px-[16px] py-[12px] text-[13px] font-semibold text-white"
                 >
                   <Save size={16} />
                   Save Changes
@@ -183,12 +183,12 @@ export default function TeacherProfilePage() {
             <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[28px]">
               <div className="flex flex-col items-center text-center">
                 <div className="relative">
-                  <div className="flex h-[110px] w-[110px] items-center justify-center rounded-full bg-[#eef8fa] text-[36px] font-bold text-[#63a8b9]">
+                  <div className="flex h-[110px] w-[110px] items-center justify-center rounded-full bg-[#f0eff9] text-[36px] font-bold text-[#716bb0]">
                     RK
                   </div>
 
                   {isEditing && (
-                    <button className="absolute bottom-[2px] right-[2px] flex h-[35px] w-[35px] items-center justify-center rounded-full bg-[#63a8b9] text-white shadow-md">
+                    <button className="absolute bottom-[2px] right-[2px] flex h-[35px] w-[35px] items-center justify-center rounded-full bg-[#716bb0] text-white shadow-md">
                       <Camera size={15} />
                     </button>
                   )}
@@ -198,7 +198,7 @@ export default function TeacherProfilePage() {
                   {profile.name}
                 </h2>
 
-                <p className="mt-[5px] text-[13px] text-[#63a8b9]">
+                <p className="mt-[5px] text-[13px] text-[#716bb0]">
                   {profile.designation}
                 </p>
 
@@ -209,7 +209,7 @@ export default function TeacherProfilePage() {
 
               <div className="mt-[28px] space-y-[17px] border-t border-[#eef0f4] pt-[25px]">
                 <div className="flex items-center gap-[12px]">
-                  <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-[#eef8fa] text-[#63a8b9]">
+                  <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-[#f0eff9] text-[#716bb0]">
                     <Mail size={17} />
                   </div>
 
@@ -362,7 +362,7 @@ export default function TeacherProfilePage() {
               {/* TEACHING STATS */}
               <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-3">
                 <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[20px]">
-                  <BookOpen size={20} className="text-[#63a8b9]" />
+                  <BookOpen size={20} className="text-[#716bb0]" />
                   <h3 className="mt-[14px] text-[26px] font-bold">24</h3>
                   <p className="text-[12px] text-[#8b94a3]">Exams Created</p>
                 </div>

@@ -40,3 +40,6 @@ ai-service/venv/
 ai-service/__pycache__/
 __pycache__/
 *.py[cod]
+
+# Local recovery backups
+*.corrupted-backup

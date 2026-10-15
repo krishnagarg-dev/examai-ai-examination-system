@@ -166,7 +166,7 @@ export default function CreateExamPage() {
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
 
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#716bb0] text-[22px] text-white shadow-[0_8px_20px_rgba(113,107,176,0.25)]">
               ✦
             </div>
 
@@ -189,7 +189,7 @@ export default function CreateExamPage() {
                 href={item.href}
                 className={`flex items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-[14px] font-medium transition-all ${
                   pathname === item.href
-                    ? "bg-[#63a8b9] text-white shadow-[0_8px_20px_rgba(99,168,185,0.18)]"
+                    ? "bg-[#716bb0] text-white shadow-[0_8px_20px_rgba(113,107,176,0.18)]"
                     : "text-[#687384] hover:bg-[#f4f6f9]"
                 }`}
               >
@@ -248,7 +248,7 @@ export default function CreateExamPage() {
               </Link>
 
               <div>
-                <p className="mb-[7px] text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
+                <p className="mb-[7px] text-[12px] font-semibold tracking-[1px] text-[#716bb0]">
                   EXAMINATION MANAGEMENT
                 </p>
 
@@ -284,7 +284,7 @@ export default function CreateExamPage() {
                 <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[27px]">
 
                   <div className="flex items-center gap-[12px]">
-                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                       <FileText size={20} />
                     </div>
 
@@ -389,7 +389,7 @@ export default function CreateExamPage() {
                 <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[27px]">
 
                   <div className="flex items-center gap-[12px]">
-                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                       <Settings2 size={20} />
                     </div>
 
@@ -446,7 +446,7 @@ export default function CreateExamPage() {
                 <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[27px]">
 
                   <div className="flex items-center gap-[12px]">
-                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                       <BookOpen size={20} />
                     </div>
 
@@ -463,7 +463,7 @@ export default function CreateExamPage() {
 
                   <textarea
                     name="instructions"
-                    className="mt-[24px] min-h-[150px] w-full resize-none rounded-[14px] border border-[#e1e5eb] p-[15px] text-[13px] outline-none placeholder:text-[#a1a8b3] focus:border-[#63a8b9]"
+                    className="mt-[24px] min-h-[150px] w-full resize-none rounded-[14px] border border-[#e1e5eb] p-[15px] text-[13px] outline-none placeholder:text-[#a1a8b3] focus:border-[#716bb0]"
                     placeholder="Enter examination instructions..."
                   />
 
@@ -486,7 +486,7 @@ export default function CreateExamPage() {
                     <div className="flex items-center gap-[12px]">
                       <CalendarDays
                         size={18}
-                        className="text-[#63a8b9]"
+                        className="text-[#716bb0]"
                       />
 
                       <div>
@@ -503,7 +503,7 @@ export default function CreateExamPage() {
                     <div className="flex items-center gap-[12px]">
                       <Clock3
                         size={18}
-                        className="text-[#63a8b9]"
+                        className="text-[#716bb0]"
                       />
 
                       <div>
@@ -520,7 +520,7 @@ export default function CreateExamPage() {
                     <div className="flex items-center gap-[12px]">
                       <Users
                         size={18}
-                        className="text-[#63a8b9]"
+                        className="text-[#716bb0]"
                       />
 
                       <div>
@@ -541,7 +541,7 @@ export default function CreateExamPage() {
                 <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[24px]">
 
                   <div className="flex items-center gap-[12px]">
-                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+                    <div className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                       <ShieldCheck size={20} />
                     </div>
 
@@ -616,7 +616,7 @@ export default function CreateExamPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className={`flex w-full items-center justify-center gap-[8px] rounded-[14px] bg-[#63a8b9] py-[14px] text-[13px] font-semibold text-white shadow-[0_10px_25px_rgba(99,168,185,0.22)] transition ${
+                  className={`flex w-full items-center justify-center gap-[8px] rounded-[14px] bg-[#716bb0] py-[14px] text-[13px] font-semibold text-white shadow-[0_10px_25px_rgba(113,107,176,0.22)] transition ${
                     submitting
                       ? "cursor-not-allowed opacity-60"
                       : "hover:opacity-90"
@@ -657,7 +657,7 @@ export default function CreateExamPage() {
 
         .field input:focus,
         .field select:focus {
-          border-color: #63a8b9;
+          border-color: #716bb0;
         }
 
         .select-wrapper {
@@ -725,7 +725,7 @@ export default function CreateExamPage() {
 
         .toggle.active {
           justify-content: flex-end;
-          background: #63a8b9;
+          background: #716bb0;
         }
       `}</style>
     </main>

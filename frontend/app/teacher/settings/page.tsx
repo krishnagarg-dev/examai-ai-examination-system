@@ -58,7 +58,7 @@ export default function TeacherSettingsPage() {
         {/* SIDEBAR */}
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#716bb0] text-[22px] text-white">
               ✦
             </div>
 
@@ -82,7 +82,7 @@ export default function TeacherSettingsPage() {
                 href={item.href}
                 className={`flex items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-[14px] font-medium transition-all ${
                   pathname === item.href
-                    ? "bg-[#63a8b9] text-white"
+                    ? "bg-[#716bb0] text-white"
                     : "text-[#687384] hover:bg-[#f4f6f9]"
                 }`}
               >
@@ -107,7 +107,7 @@ export default function TeacherSettingsPage() {
 
             <Link
               href="/teacher/settings"
-              className="mt-[8px] flex w-full items-center gap-[17px] rounded-[14px] bg-[#63a8b9] px-[18px] py-[15px] text-[14px] font-medium text-white"
+              className="mt-[8px] flex w-full items-center gap-[17px] rounded-[14px] bg-[#716bb0] px-[18px] py-[15px] text-[14px] font-medium text-white"
             >
               <Settings size={17} />
               Settings
@@ -127,7 +127,7 @@ export default function TeacherSettingsPage() {
         <section className="flex-1 p-[38px]">
           <div className="flex flex-col justify-between gap-[20px] md:flex-row md:items-center">
             <div>
-              <p className="text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
+              <p className="text-[12px] font-semibold tracking-[1px] text-[#716bb0]">
                 ACCOUNT SETTINGS
               </p>
 
@@ -142,7 +142,7 @@ export default function TeacherSettingsPage() {
 
             <button
               onClick={handleSave}
-              className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#63a8b9] px-[18px] py-[12px] text-[13px] font-semibold text-white hover:opacity-90"
+              className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#716bb0] px-[18px] py-[12px] text-[13px] font-semibold text-white hover:opacity-90"
             >
               <Save size={17} />
               Save Changes
@@ -153,7 +153,7 @@ export default function TeacherSettingsPage() {
 
             {/* SETTINGS MENU */}
             <div className="h-fit rounded-[22px] border border-[#e8eaf0] bg-white p-[16px]">
-              <div className="rounded-[14px] bg-[#eef8fa] px-[16px] py-[14px] text-[13px] font-semibold text-[#63a8b9]">
+              <div className="rounded-[14px] bg-[#f0eff9] px-[16px] py-[14px] text-[13px] font-semibold text-[#716bb0]">
                 <div className="flex items-center gap-[11px]">
                   <Bell size={17} />
                   Notifications
@@ -187,7 +187,7 @@ export default function TeacherSettingsPage() {
               {/* NOTIFICATIONS */}
               <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[28px]">
                 <div className="flex items-start gap-[14px]">
-                  <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+                  <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                     <Bell size={20} />
                   </div>
 
@@ -253,7 +253,7 @@ export default function TeacherSettingsPage() {
                           notifications[
                             item.key as keyof typeof notifications
                           ]
-                            ? "bg-[#63a8b9]"
+                            ? "bg-[#716bb0]"
                             : "bg-[#dfe3e8]"
                         }`}
                       >
@@ -445,7 +445,7 @@ export default function TeacherSettingsPage() {
                         }
                         className={`rounded-[11px] px-[18px] py-[10px] text-[12px] font-semibold ${
                           settings.theme === theme
-                            ? "bg-[#63a8b9] text-white"
+                            ? "bg-[#716bb0] text-white"
                             : "border border-[#e1e5eb] text-[#667386]"
                         }`}
                       >

@@ -107,7 +107,7 @@ export default function TeacherResultsPage() {
         {/* SIDEBAR */}
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
-            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white">
+            <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#716bb0] text-[22px] text-white">
               ✦
             </div>
 
@@ -130,7 +130,7 @@ export default function TeacherResultsPage() {
                 href={item.href}
                 className={`flex items-center gap-[17px] rounded-[14px] px-[18px] py-[16px] text-[14px] font-medium transition-all ${
                   pathname === item.href
-                    ? "bg-[#63a8b9] text-white shadow-[0_8px_20px_rgba(99,168,185,0.18)]"
+                    ? "bg-[#716bb0] text-white shadow-[0_8px_20px_rgba(113,107,176,0.18)]"
                     : "text-[#687384] hover:bg-[#f4f6f9]"
                 }`}
               >
@@ -155,7 +155,7 @@ export default function TeacherResultsPage() {
         <section className="flex-1 p-[38px]">
           <div className="flex flex-col justify-between gap-[20px] md:flex-row md:items-center">
             <div>
-              <p className="text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
+              <p className="text-[12px] font-semibold tracking-[1px] text-[#716bb0]">
                 EXAMINATION RESULTS
               </p>
 
@@ -170,7 +170,7 @@ export default function TeacherResultsPage() {
 
             <button
               onClick={() => alert("Result report download will be available here")}
-              className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#63a8b9] px-[18px] py-[12px] text-[13px] font-semibold text-white hover:opacity-90"
+              className="flex items-center justify-center gap-[8px] rounded-[12px] bg-[#716bb0] px-[18px] py-[12px] text-[13px] font-semibold text-white hover:opacity-90"
             >
               <Download size={17} />
               Download Report
@@ -180,7 +180,7 @@ export default function TeacherResultsPage() {
           {/* STATS */}
           <div className="mt-[30px] grid grid-cols-1 gap-[18px] sm:grid-cols-3">
             <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[22px]">
-              <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[13px] bg-[#eef8fa] text-[#63a8b9]">
+              <div className="flex h-[44px] w-[44px] items-center justify-center rounded-[13px] bg-[#f0eff9] text-[#716bb0]">
                 <FileText size={21} />
               </div>
 
