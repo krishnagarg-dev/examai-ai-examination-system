@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import LiveClock from "../../../components/LiveClock";
 
 export default function TeacherDashboardPage() {
   const router = useRouter();
@@ -48,12 +49,12 @@ export default function TeacherDashboardPage() {
   };
 
   const navItems = [
-    { icon: "⌂", label: "Dashboard", href: "/teacher/dashboard" },
-    { icon: "▣", label: "My Exams", href: "/teacher/exams" },
-    { icon: "＋", label: "Create Exam", href: "/teacher/create-exam" },
-    { icon: "◉", label: "Questions", href: "/teacher/questions" },
-    { icon: "◉", label: "Students", href: "/teacher/students" },
-    { icon: "▥", label: "Results", href: "/teacher/results" },
+    { icon: "âŒ‚", label: "Dashboard", href: "/teacher/dashboard" },
+    { icon: "â–£", label: "My Exams", href: "/teacher/exams" },
+    { icon: "ï¼‹", label: "Create Exam", href: "/teacher/create-exam" },
+    { icon: "â—‰", label: "Questions", href: "/teacher/questions" },
+    { icon: "â—‰", label: "Students", href: "/teacher/students" },
+    { icon: "â–¥", label: "Results", href: "/teacher/results" },
   ];
 
   if (isCheckingAuth) {
@@ -68,7 +69,7 @@ export default function TeacherDashboardPage() {
           <div className="px-6 py-6 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#6f6ca8] text-white flex items-center justify-center shadow-sm">
-                ✦
+                âœ¦
               </div>
 
               <div>
@@ -121,7 +122,7 @@ export default function TeacherDashboardPage() {
                 onClick={() => router.push("/teacher/profile")}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               >
-                <span className="w-5 text-center">◌</span>
+                <span className="w-5 text-center">â—Œ</span>
                 Profile
               </button>
 
@@ -130,7 +131,7 @@ export default function TeacherDashboardPage() {
                 onClick={() => router.push("/teacher/settings")}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-500 hover:bg-slate-50 hover:text-slate-700"
               >
-                <span className="w-5 text-center">⚙</span>
+                <span className="w-5 text-center">âš™</span>
                 Settings
               </button>
 
@@ -139,7 +140,7 @@ export default function TeacherDashboardPage() {
                 onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-500 hover:bg-red-50 hover:text-red-500"
               >
-                <span className="w-5 text-center">↪</span>
+                <span className="w-5 text-center">â†ª</span>
                 Logout
               </button>
             </nav>
@@ -166,6 +167,10 @@ export default function TeacherDashboardPage() {
               Teacher Portal
             </div>
 
+            <div className="hidden text-sm text-[#6f6ca8] md:block">
+              <LiveClock />
+            </div>
+
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-[#6f6ca8]/10 text-[#6f6ca8] flex items-center justify-center font-semibold">
                 {userName
@@ -187,7 +192,6 @@ export default function TeacherDashboardPage() {
               </div>
             </div>
           </header>
-
           <div className="p-8">
             {/* Heading */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
@@ -197,7 +201,7 @@ export default function TeacherDashboardPage() {
                 </p>
 
                 <h2 className="text-3xl font-bold text-slate-800">
-                  Welcome back, {userName}! 👋
+                  Welcome back, {userName}! ðŸ‘‹
                 </h2>
 
                 <p className="text-sm text-slate-500 mt-2">
@@ -210,7 +214,7 @@ export default function TeacherDashboardPage() {
                 onClick={() => router.push("/teacher/create-exam")}
                 className="px-5 py-3 rounded-xl bg-[#6f6ca8] text-white text-sm font-semibold shadow-sm hover:opacity-90 transition"
               >
-                ＋ Create New Exam
+                ï¼‹ Create New Exam
               </button>
             </div>
 
@@ -221,7 +225,7 @@ export default function TeacherDashboardPage() {
                   <span className="text-sm text-slate-500">
                     My Exams
                   </span>
-                  <span className="text-[#6f6ca8]">▣</span>
+                  <span className="text-[#6f6ca8]">â–£</span>
                 </div>
 
                 <h3 className="text-3xl font-bold text-slate-800 mt-4">
@@ -238,7 +242,7 @@ export default function TeacherDashboardPage() {
                   <span className="text-sm text-slate-500">
                     Questions
                   </span>
-                  <span className="text-[#6f6ca8]">◉</span>
+                  <span className="text-[#6f6ca8]">â—‰</span>
                 </div>
 
                 <h3 className="text-3xl font-bold text-slate-800 mt-4">
@@ -255,7 +259,7 @@ export default function TeacherDashboardPage() {
                   <span className="text-sm text-slate-500">
                     Students
                   </span>
-                  <span className="text-[#6f6ca8]">◉</span>
+                  <span className="text-[#6f6ca8]">â—‰</span>
                 </div>
 
                 <h3 className="text-3xl font-bold text-slate-800 mt-4">
@@ -272,7 +276,7 @@ export default function TeacherDashboardPage() {
                   <span className="text-sm text-slate-500">
                     Average Score
                   </span>
-                  <span className="text-[#6f6ca8]">↗</span>
+                  <span className="text-[#6f6ca8]">â†—</span>
                 </div>
 
                 <h3 className="text-3xl font-bold text-slate-800 mt-4">
@@ -313,7 +317,7 @@ export default function TeacherDashboardPage() {
                   <div className="px-6 py-5 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-xl bg-[#6f6ca8]/10 text-[#6f6ca8] flex items-center justify-center">
-                        ▣
+                        â–£
                       </div>
 
                       <div>
@@ -322,7 +326,7 @@ export default function TeacherDashboardPage() {
                         </h4>
 
                         <p className="text-xs text-slate-400 mt-1">
-                          MCA-301 • 28 Sep 2026 • 10:00 AM
+                          MCA-301 â€¢ 28 Sep 2026 â€¢ 10:00 AM
                         </p>
                       </div>
                     </div>
@@ -335,7 +339,7 @@ export default function TeacherDashboardPage() {
                   <div className="px-6 py-5 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-xl bg-[#6f6ca8]/10 text-[#6f6ca8] flex items-center justify-center">
-                        ▣
+                        â–£
                       </div>
 
                       <div>
@@ -344,7 +348,7 @@ export default function TeacherDashboardPage() {
                         </h4>
 
                         <p className="text-xs text-slate-400 mt-1">
-                          MCA-302 • 30 Sep 2026 • 02:00 PM
+                          MCA-302 â€¢ 30 Sep 2026 â€¢ 02:00 PM
                         </p>
                       </div>
                     </div>
@@ -357,7 +361,7 @@ export default function TeacherDashboardPage() {
                   <div className="px-6 py-5 flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="w-11 h-11 rounded-xl bg-[#6f6ca8]/10 text-[#6f6ca8] flex items-center justify-center">
-                        ▣
+                        â–£
                       </div>
 
                       <div>
@@ -366,7 +370,7 @@ export default function TeacherDashboardPage() {
                         </h4>
 
                         <p className="text-xs text-slate-400 mt-1">
-                          MCA-303 • 02 Oct 2026 • 11:00 AM
+                          MCA-303 â€¢ 02 Oct 2026 â€¢ 11:00 AM
                         </p>
                       </div>
                     </div>
@@ -397,7 +401,7 @@ export default function TeacherDashboardPage() {
                     className="w-full text-left p-4 rounded-xl border border-slate-200 hover:border-[#6f6ca8]/30 hover:bg-[#6f6ca8]/5 transition"
                   >
                     <p className="text-sm font-semibold text-slate-700">
-                      ＋ Create Examination
+                      ï¼‹ Create Examination
                     </p>
 
                     <p className="text-xs text-slate-400 mt-1">
@@ -411,7 +415,7 @@ export default function TeacherDashboardPage() {
                     className="w-full text-left p-4 rounded-xl border border-slate-200 hover:border-[#6f6ca8]/30 hover:bg-[#6f6ca8]/5 transition"
                   >
                     <p className="text-sm font-semibold text-slate-700">
-                      ◉ Question Bank
+                      â—‰ Question Bank
                     </p>
 
                     <p className="text-xs text-slate-400 mt-1">
@@ -425,7 +429,7 @@ export default function TeacherDashboardPage() {
                     className="w-full text-left p-4 rounded-xl border border-slate-200 hover:border-[#6f6ca8]/30 hover:bg-[#6f6ca8]/5 transition"
                   >
                     <p className="text-sm font-semibold text-slate-700">
-                      ▥ View Results
+                      â–¥ View Results
                     </p>
 
                     <p className="text-xs text-slate-400 mt-1">
@@ -439,7 +443,7 @@ export default function TeacherDashboardPage() {
                     className="w-full text-left p-4 rounded-xl border border-slate-200 hover:border-[#6f6ca8]/30 hover:bg-[#6f6ca8]/5 transition"
                   >
                     <p className="text-sm font-semibold text-slate-700">
-                      ◉ Manage Students
+                      â—‰ Manage Students
                     </p>
 
                     <p className="text-xs text-slate-400 mt-1">
@@ -545,7 +549,7 @@ export default function TeacherDashboardPage() {
                       </td>
 
                       <td className="px-6 py-4 text-slate-700 font-semibold">
-                        —
+                        â€”
                       </td>
 
                       <td className="px-6 py-4">
@@ -561,7 +565,7 @@ export default function TeacherDashboardPage() {
 
             {/* Footer */}
             <div className="mt-8 text-center text-xs text-slate-400">
-              ExamAI • AI-Powered Examination System
+              ExamAI â€¢ AI-Powered Examination System
             </div>
           </div>
         </section>
@@ -569,3 +573,8 @@ export default function TeacherDashboardPage() {
     </main>
   );
 }
+
+
+
+
+

@@ -1,22 +1,23 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import LiveClock from "../../../components/LiveClock";
 
 const navItems = [
   {
-    icon: "⌂",
+    icon: "âŒ‚",
     label: "Dashboard",
     href: "/student/dashboard",
   },
   {
-    icon: "▣",
+    icon: "â–£",
     label: "My Exams",
     href: "/student/exams",
   },
   {
-    icon: "▥",
+    icon: "â–¥",
     label: "Results",
     href: "/student/results",
   },
@@ -115,7 +116,7 @@ export default function StudentDashboard() {
           {/* BRAND */}
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
             <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
-              ✦
+              âœ¦
             </div>
 
             <div>
@@ -162,7 +163,7 @@ export default function StudentDashboard() {
                 href="/student/profile"
                 className="flex items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
-                <span className="w-[14px] text-center">◌</span>
+                <span className="w-[14px] text-center">â—Œ</span>
                 Profile
               </Link>
 
@@ -170,7 +171,7 @@ export default function StudentDashboard() {
                 href="/student/settings"
                 className="flex items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
-                <span className="w-[14px] text-center">⚙</span>
+                <span className="w-[14px] text-center">âš™</span>
                 Settings
               </Link>
 
@@ -179,7 +180,7 @@ export default function StudentDashboard() {
                 onClick={handleLogout}
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#d66b75] transition hover:bg-[#fff4f5]"
               >
-                <span className="w-[14px] text-center">↪</span>
+                <span className="w-[14px] text-center">â†ª</span>
                 Logout
               </button>
             </div>
@@ -196,7 +197,7 @@ export default function StudentDashboard() {
               </p>
 
               <h1 className="text-[30px] font-bold text-[#263446]">
-                Welcome back, {userName}! 👋
+                Welcome back, {userName}! ðŸ‘‹
               </h1>
 
               <p className="mt-[8px] text-[14px] text-[#7d8796]">
@@ -205,6 +206,10 @@ export default function StudentDashboard() {
             </div>
 
             <div className="flex items-center gap-[14px]">
+              <div className="mr-2 text-right text-xs text-[#63a8b9]">
+                <LiveClock />
+              </div>
+
               <div className="rounded-[16px] border border-[#e8eaf0] bg-white px-[18px] py-[11px]">
                 <p className="text-[11px] text-[#8b94a3]">
                   Student ID
@@ -298,13 +303,13 @@ export default function StudentDashboard() {
                 </h2>
 
                 <p className="mt-[7px] text-[14px] text-[#c5ccd7]">
-                  MCA-302 • 28 Aug 2026 • 10:00 AM
+                  MCA-302 â€¢ 28 Aug 2026 â€¢ 10:00 AM
                 </p>
 
                 <div className="mt-[18px] flex gap-[25px] text-[13px] text-[#d7dce4]">
-                  <span>⏱ 2 Hours</span>
-                  <span>▣ 100 Marks</span>
-                  <span>◉ AI Proctoring</span>
+                  <span>â± 2 Hours</span>
+                  <span>â–£ 100 Marks</span>
+                  <span>â—‰ AI Proctoring</span>
                 </div>
               </div>
 
@@ -352,11 +357,11 @@ export default function StudentDashboard() {
                       </h3>
 
                       <p className="mt-[5px] text-[12px] text-[#8b94a3]">
-                        {exam.code} • {exam.date}
+                        {exam.code} â€¢ {exam.date}
                       </p>
 
                       <p className="mt-[5px] text-[12px] text-[#8b94a3]">
-                        {exam.time} • {exam.duration}
+                        {exam.time} â€¢ {exam.duration}
                       </p>
                     </div>
 
@@ -430,3 +435,4 @@ export default function StudentDashboard() {
     </main>
   );
 }
+

@@ -1,21 +1,22 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import LiveClock from "../../../components/LiveClock";
 
 const navItems = [
-  { icon: "⌂", label: "Dashboard", href: "/admin/dashboard" },
-  { icon: "▣", label: "Exams", href: "/admin/exams" },
-  { icon: "＋", label: "Create Exam", href: "/admin/create-exam" },
-  { icon: "◉", label: "Students", href: "/admin/students" },
+  { icon: "âŒ‚", label: "Dashboard", href: "/admin/dashboard" },
+  { icon: "â–£", label: "Exams", href: "/admin/exams" },
+  { icon: "ï¼‹", label: "Create Exam", href: "/admin/create-exam" },
+  { icon: "â—‰", label: "Students", href: "/admin/students" },
   {
-    icon: "◉",
+    icon: "â—‰",
     label: "Live Proctoring",
     href: "/admin/live-proctoring",
   },
-  { icon: "▥", label: "Results", href: "/admin/results" },
-  { icon: "◇", label: "Analytics", href: "/admin/analytics" },
+  { icon: "â–¥", label: "Results", href: "/admin/results" },
+  { icon: "â—‡", label: "Analytics", href: "/admin/analytics" },
 ];
 
 const exams = [
@@ -100,7 +101,7 @@ export default function Dashboard() {
           {/* BRAND */}
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
             <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
-              ✦
+              âœ¦
             </div>
 
             <div>
@@ -148,7 +149,7 @@ export default function Dashboard() {
                 href="/admin/profile"
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
-                <span className="w-[14px] text-center">◌</span>
+                <span className="w-[14px] text-center">â—Œ</span>
                 Profile
               </Link>
 
@@ -156,7 +157,7 @@ export default function Dashboard() {
                 href="/admin/settings"
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
-                <span className="w-[14px] text-center">⚙</span>
+                <span className="w-[14px] text-center">âš™</span>
                 Settings
               </Link>
 
@@ -165,7 +166,7 @@ export default function Dashboard() {
                 onClick={handleLogout}
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#d66b75] transition hover:bg-[#fff4f5]"
               >
-                <span className="w-[14px] text-center">↪</span>
+                <span className="w-[14px] text-center">â†ª</span>
                 Logout
               </button>
             </div>
@@ -178,7 +179,7 @@ export default function Dashboard() {
           <header className="flex h-[96px] items-center justify-between">
             <div className="flex items-center">
               <div className="flex h-[48px] w-[330px] items-center gap-[11px] rounded-[15px] border border-[#dfe3ea] bg-white px-[17px] text-[#8b95a4] shadow-[0_5px_18px_rgba(35,46,70,0.03)]">
-                <span className="text-[20px]">⌕</span>
+                <span className="text-[20px]">âŒ•</span>
 
                 <input
                   placeholder="Search exams, students..."
@@ -187,13 +188,17 @@ export default function Dashboard() {
               </div>
             </div>
 
+            <div className="mr-4 hidden text-right text-xs text-[#7772b6] lg:block">
+              <LiveClock />
+            </div>
+
             <div className="flex items-center gap-[12px]">
               <button className="flex h-[48px] w-[48px] items-center justify-center rounded-[14px] border border-[#dfe3ea] bg-white text-[#657285] shadow-[0_5px_18px_rgba(35,46,70,0.03)]">
-                ◌
+                â—Œ
               </button>
 
               <button className="relative flex h-[48px] w-[48px] items-center justify-center rounded-[14px] border border-[#dfe3ea] bg-white text-[#657285] shadow-[0_5px_18px_rgba(35,46,70,0.03)]">
-                ♟
+                â™Ÿ
 
                 <span className="absolute right-[13px] top-[12px] h-[5px] w-[5px] rounded-full bg-[#ef6f7d]" />
               </button>
@@ -214,7 +219,7 @@ export default function Dashboard() {
                 </div>
 
                 <span className="ml-[4px] text-[14px] text-[#87909d]">
-                  ⌄
+                  âŒ„
                 </span>
               </div>
             </div>
@@ -228,7 +233,7 @@ export default function Dashboard() {
               </p>
 
               <h1 className="text-[32px] font-medium text-[#27384d]">
-                Welcome back, Krishna! 👋
+                Welcome back, Krishna! ðŸ‘‹
               </h1>
 
               <p className="mt-[8px] text-[14px] text-[#7d8795]">
@@ -238,7 +243,7 @@ export default function Dashboard() {
             </div>
 
             <button className="flex items-center gap-[10px] rounded-[16px] bg-[#63a8b9] px-[24px] py-[16px] text-[14px] font-semibold text-white shadow-[0_10px_25px_rgba(99,168,185,0.22)] transition hover:-translate-y-[2px] hover:bg-[#528f9f]">
-              <span className="text-[19px]">＋</span>
+              <span className="text-[19px]">ï¼‹</span>
               Create New Exam
             </button>
           </div>
@@ -248,11 +253,11 @@ export default function Dashboard() {
             <div className="min-h-[170px] rounded-[22px] border border-[#d9dcf0] bg-[#dcdcf0] p-[22px] shadow-[0_8px_25px_rgba(35,46,70,0.04)]">
               <div className="flex items-center justify-between">
                 <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-white/60 text-[20px] text-[#5f93a4]">
-                  ▣
+                  â–£
                 </span>
 
                 <span className="rounded-full bg-[#d4eadf] px-[10px] py-[6px] text-[11px] font-bold text-[#5b9b7b]">
-                  ↗ 12%
+                  â†— 12%
                 </span>
               </div>
 
@@ -272,11 +277,11 @@ export default function Dashboard() {
             <div className="min-h-[170px] rounded-[22px] border border-[#f2e5b2] bg-[#fff0bd] p-[22px] shadow-[0_8px_25px_rgba(35,46,70,0.04)]">
               <div className="flex items-center justify-between">
                 <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-white/60 text-[20px] text-[#5f93a4]">
-                  ◉
+                  â—‰
                 </span>
 
                 <span className="rounded-full bg-[#e7edcf] px-[10px] py-[6px] text-[11px] font-bold text-[#6b9a6f]">
-                  ↗ 8%
+                  â†— 8%
                 </span>
               </div>
 
@@ -296,11 +301,11 @@ export default function Dashboard() {
             <div className="min-h-[170px] rounded-[22px] border border-[#c9e0e6] bg-[#d6edf2] p-[22px] shadow-[0_8px_25px_rgba(35,46,70,0.04)]">
               <div className="flex items-center justify-between">
                 <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-white/60 text-[20px] text-[#5f93a4]">
-                  ◉
+                  â—‰
                 </span>
 
                 <span className="rounded-full bg-[#c8e4e4] px-[10px] py-[6px] text-[11px] font-bold text-[#438494]">
-                  ● Live
+                  â— Live
                 </span>
               </div>
 
@@ -320,11 +325,11 @@ export default function Dashboard() {
             <div className="min-h-[170px] rounded-[22px] border border-[#e3e4e8] bg-white p-[22px] shadow-[0_8px_25px_rgba(35,46,70,0.04)]">
               <div className="flex items-center justify-between">
                 <span className="flex h-[48px] w-[48px] items-center justify-center rounded-[14px] bg-[#fff8e9] text-[19px] text-[#e2a526]">
-                  ⚠
+                  âš 
                 </span>
 
                 <span className="rounded-full bg-[#fff0f2] px-[10px] py-[6px] text-[11px] font-bold text-[#e36d78]">
-                  ↗ 3%
+                  â†— 3%
                 </span>
               </div>
 
@@ -476,7 +481,7 @@ export default function Dashboard() {
                     className="grid grid-cols-[40px_1fr_auto_auto] items-center gap-[12px] border-b border-[#f0f0f4] py-[14px] last:border-none"
                   >
                     <div className="flex h-[36px] w-[36px] items-center justify-center rounded-[11px] bg-[#e8f5f7] text-[#5d9fad]">
-                      ▣
+                      â–£
                     </div>
 
                     <div className="flex flex-col">
@@ -485,7 +490,7 @@ export default function Dashboard() {
                       </strong>
 
                       <span className="mt-[4px] text-[9px] text-[#929aa7]">
-                        {exam.code} • {exam.date}
+                        {exam.code} â€¢ {exam.date}
                       </span>
                     </div>
 
@@ -537,21 +542,21 @@ export default function Dashboard() {
                 <AlertItem
                   color="red"
                   title="Multiple Face Detected"
-                  description="Rahul Sharma • DSA Examination"
+                  description="Rahul Sharma â€¢ DSA Examination"
                   time="2 minutes ago"
                 />
 
                 <AlertItem
                   color="yellow"
                   title="Student Looking Away"
-                  description="Priya Singh • DBMS Examination"
+                  description="Priya Singh â€¢ DBMS Examination"
                   time="8 minutes ago"
                 />
 
                 <AlertItem
                   color="purple"
                   title="Mobile Device Detected"
-                  description="Aman Verma • Computer Networks"
+                  description="Aman Verma â€¢ Computer Networks"
                   time="15 minutes ago"
                 />
               </div>
@@ -651,3 +656,4 @@ function AlertItem({
     </div>
   );
 }
+
