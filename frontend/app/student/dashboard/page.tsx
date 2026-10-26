@@ -7,40 +7,33 @@ import LiveClock from "../../../components/LiveClock";
 
 const navItems = [
   {
-    icon: "âŒ‚",
+    icon: "⌂",
     label: "Dashboard",
     href: "/student/dashboard",
   },
   {
-    icon: "â–£",
+    icon: "▣",
     label: "My Exams",
     href: "/student/exams",
   },
   {
-    icon: "â–¥",
+    icon: "▥",
     label: "Results",
     href: "/student/results",
   },
 ];
 
-const upcomingExams = [
-  {
-    subject: "Database Management System",
-    code: "MCA-302",
-    date: "28 Aug 2026",
-    time: "10:00 AM",
-    duration: "2 Hours",
-    status: "Upcoming",
-  },
-  {
-    subject: "Operating Systems",
-    code: "MCA-303",
-    date: "30 Aug 2026",
-    time: "02:00 PM",
-    duration: "2 Hours",
-    status: "Upcoming",
-  },
-];
+type DashboardExam = {
+  _id: string;
+  title: string;
+  code: string;
+  subject?: string;
+  duration: number;
+  totalMarks: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+};
 
 const recentResults = [
   {
@@ -65,6 +58,8 @@ export default function StudentDashboard() {
 
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [userName, setUserName] = useState("Krishna");
+  const [exams, setExams] = useState<DashboardExam[]>([]);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const verifyStudent = async () => {
@@ -97,6 +92,109 @@ export default function StudentDashboard() {
     verifyStudent();
   }, [router]);
 
+  // Refresh the current time every minute so exam statuses stay current.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  // Load examinations from the existing API instead of using hardcoded dates.
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchExams = async () => {
+      try {
+        const response = await fetch("/api/exams", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch examinations");
+        }
+
+        const data = await response.json();
+        const list = Array.isArray(data) ? data : data.exams || [];
+
+        if (!cancelled) {
+          setExams(list);
+        }
+      } catch (error) {
+        console.error("Failed to load dashboard examinations:", error);
+
+        if (!cancelled) {
+          setExams([]);
+        }
+      }
+    };
+
+    fetchExams();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleExams = exams.filter((exam) => exam.status !== "draft");
+
+  const liveExam = visibleExams.find((exam) => {
+    const start = new Date(exam.startTime).getTime();
+    const end = new Date(exam.endTime).getTime();
+
+    return (
+      exam.status !== "completed" &&
+      Number.isFinite(start) &&
+      Number.isFinite(end) &&
+      start <= now.getTime() &&
+      now.getTime() < end
+    );
+  });
+
+  // An exam is upcoming only if its start time is still in the future.
+  const upcomingExams = visibleExams
+    .filter((exam) => {
+      const start = new Date(exam.startTime).getTime();
+
+      return (
+        Number.isFinite(start) &&
+        start > now.getTime() &&
+        exam.status !== "completed"
+      );
+    })
+    .sort(
+      (a, b) =>
+        new Date(a.startTime).getTime() -
+        new Date(b.startTime).getTime(),
+    );
+
+  const featuredExam = liveExam || upcomingExams[0] || null;
+
+  const nextExamDays =
+    featuredExam && !liveExam
+      ? Math.ceil(
+          (new Date(featuredExam.startTime).getTime() -
+            now.getTime()) /
+            (24 * 60 * 60 * 1000),
+        )
+      : null;
+
+  const formatExamDate = (value: string) =>
+    new Date(value).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+  const formatExamTime = (value: string) =>
+    new Date(value).toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("rememberMe");
@@ -116,7 +214,7 @@ export default function StudentDashboard() {
           {/* BRAND */}
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
             <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
-              âœ¦
+              ✦
             </div>
 
             <div>
@@ -163,7 +261,7 @@ export default function StudentDashboard() {
                 href="/student/profile"
                 className="flex items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
-                <span className="w-[14px] text-center">â—Œ</span>
+                <span className="w-[14px] text-center">◌</span>
                 Profile
               </Link>
 
@@ -171,7 +269,7 @@ export default function StudentDashboard() {
                 href="/student/settings"
                 className="flex items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#667386] transition hover:bg-[#f6f8fb]"
               >
-                <span className="w-[14px] text-center">âš™</span>
+                <span className="w-[14px] text-center">⚙</span>
                 Settings
               </Link>
 
@@ -180,7 +278,7 @@ export default function StudentDashboard() {
                 onClick={handleLogout}
                 className="flex w-full items-center gap-[17px] rounded-[14px] px-[18px] py-[15px] text-[14px] font-medium text-[#d66b75] transition hover:bg-[#fff4f5]"
               >
-                <span className="w-[14px] text-center">â†ª</span>
+                <span className="w-[14px] text-center">↪</span>
                 Logout
               </button>
             </div>
@@ -197,7 +295,7 @@ export default function StudentDashboard() {
               </p>
 
               <h1 className="text-[30px] font-bold text-[#263446]">
-                Welcome back, {userName}! ðŸ‘‹
+                Welcome back, {userName}! 👋
               </h1>
 
               <p className="mt-[8px] text-[14px] text-[#7d8796]">
@@ -239,11 +337,19 @@ export default function StudentDashboard() {
               </p>
 
               <h2 className="mt-[12px] text-[30px] font-bold">
-                2
+                {upcomingExams.length}
               </h2>
 
               <p className="mt-[8px] text-[12px] text-[#63a8b9]">
-                Next exam in 2 days
+                {liveExam
+                  ? "An exam is currently in progress"
+                  : nextExamDays !== null
+                    ? nextExamDays <= 0
+                      ? "Next exam starts today"
+                      : `Next exam in ${nextExamDays} day${
+                          nextExamDays === 1 ? "" : "s"
+                        }`
+                    : "No upcoming exams scheduled"}
               </p>
             </div>
 
@@ -290,27 +396,37 @@ export default function StudentDashboard() {
             </div>
           </div>
 
-          {/* TODAY'S EXAM */}
+          {/* FEATURED EXAM */}
           <div className="mt-[28px] rounded-[22px] bg-[#263446] p-[30px] text-white">
             <div className="flex flex-col justify-between gap-[25px] lg:flex-row lg:items-center">
               <div>
                 <span className="rounded-full bg-white/10 px-[12px] py-[6px] text-[11px] font-semibold tracking-[1px]">
-                  UPCOMING EXAM
+                  {liveExam
+                    ? "LIVE EXAM"
+                    : featuredExam
+                      ? "UPCOMING EXAM"
+                      : "EXAM SCHEDULE"}
                 </span>
 
                 <h2 className="mt-[20px] text-[25px] font-bold">
-                  Database Management System
+                  {featuredExam?.title || "No upcoming examinations"}
                 </h2>
 
                 <p className="mt-[7px] text-[14px] text-[#c5ccd7]">
-                  MCA-302 â€¢ 28 Aug 2026 â€¢ 10:00 AM
+                  {featuredExam
+                    ? `${featuredExam.code} • ${formatExamDate(
+                        featuredExam.startTime,
+                      )} • ${formatExamTime(featuredExam.startTime)}`
+                    : "Your next scheduled examination will appear here."}
                 </p>
 
-                <div className="mt-[18px] flex gap-[25px] text-[13px] text-[#d7dce4]">
-                  <span>â± 2 Hours</span>
-                  <span>â–£ 100 Marks</span>
-                  <span>â—‰ AI Proctoring</span>
-                </div>
+                {featuredExam && (
+                  <div className="mt-[18px] flex gap-[25px] text-[13px] text-[#d7dce4]">
+                    <span>⏱ {featuredExam.duration} Minutes</span>
+                    <span>▣ {featuredExam.totalMarks} Marks</span>
+                    <span>◉ AI Proctoring</span>
+                  </div>
+                )}
               </div>
 
               <Link
@@ -346,30 +462,36 @@ export default function StudentDashboard() {
               </div>
 
               <div className="space-y-[14px]">
-                {upcomingExams.map((exam) => (
-                  <div
-                    key={exam.code}
-                    className="flex items-center justify-between rounded-[16px] border border-[#eef0f4] p-[17px]"
-                  >
-                    <div>
-                      <h3 className="text-[14px] font-semibold">
-                        {exam.subject}
-                      </h3>
+                {upcomingExams.length === 0 ? (
+                  <p className="py-[18px] text-[13px] text-[#8b94a3]">
+                    No upcoming examinations are currently scheduled.
+                  </p>
+                ) : (
+                  upcomingExams.slice(0, 3).map((exam) => (
+                    <div
+                      key={exam._id}
+                      className="flex items-center justify-between rounded-[16px] border border-[#eef0f4] p-[17px]"
+                    >
+                      <div>
+                        <h3 className="text-[14px] font-semibold">
+                          {exam.title}
+                        </h3>
 
-                      <p className="mt-[5px] text-[12px] text-[#8b94a3]">
-                        {exam.code} â€¢ {exam.date}
-                      </p>
+                        <p className="mt-[5px] text-[12px] text-[#8b94a3]">
+                          {exam.code} • {formatExamDate(exam.startTime)}
+                        </p>
 
-                      <p className="mt-[5px] text-[12px] text-[#8b94a3]">
-                        {exam.time} â€¢ {exam.duration}
-                      </p>
+                        <p className="mt-[5px] text-[12px] text-[#8b94a3]">
+                          {formatExamTime(exam.startTime)} • {exam.duration} Minutes
+                        </p>
+                      </div>
+
+                      <span className="rounded-full bg-[#eef8fa] px-[11px] py-[6px] text-[11px] font-semibold text-[#63a8b9]">
+                        Upcoming
+                      </span>
                     </div>
-
-                    <span className="rounded-full bg-[#eef8fa] px-[11px] py-[6px] text-[11px] font-semibold text-[#63a8b9]">
-                      {exam.status}
-                    </span>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -435,4 +557,3 @@ export default function StudentDashboard() {
     </main>
   );
 }
-

@@ -28,6 +28,7 @@ export default function StudentExams() {
 
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -61,17 +62,53 @@ export default function StudentExams() {
     fetchExams();
   }, []);
 
+  // Keep the status up to date while this page is open.
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
+
+  const getCurrentStatus = (exam: Exam) => {
+    if (exam.status === "draft") {
+      return "draft";
+    }
+
+    if (exam.status === "completed") {
+      return "completed";
+    }
+
+    const start = new Date(exam.startTime).getTime();
+    const end = new Date(exam.endTime).getTime();
+
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      return "unknown";
+    }
+
+    if (now.getTime() >= end) {
+      return "completed";
+    }
+
+    if (now.getTime() >= start) {
+      return "live";
+    }
+
+    return "scheduled";
+  };
+
   const upcomingExams = useMemo(() => {
     return exams.filter(
-      (exam) => exam.status === "scheduled",
+      (exam) => getCurrentStatus(exam) === "scheduled",
     );
-  }, [exams]);
+  }, [exams, now]);
 
   const liveExams = useMemo(() => {
     return exams.filter(
-      (exam) => exam.status === "live",
+      (exam) => getCurrentStatus(exam) === "live",
     );
-  }, [exams]);
+  }, [exams, now]);
 
   const handleLogout = () => {
     localStorage.removeItem("examai-auth");
@@ -108,10 +145,8 @@ export default function StudentExams() {
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#263446]">
       <div className="flex min-h-screen">
-
         {/* SIDEBAR */}
         <aside className="sticky top-0 flex h-screen w-[280px] shrink-0 flex-col border-r border-[#e8eaf0] bg-white px-[17px] py-[30px]">
-
           <div className="flex items-center gap-[14px] border-b border-[#eef0f4] pb-[30px]">
             <div className="flex h-[48px] w-[48px] items-center justify-center rounded-[15px] bg-[#63a8b9] text-[22px] text-white shadow-[0_8px_20px_rgba(99,168,185,0.25)]">
               ✦
@@ -188,7 +223,6 @@ export default function StudentExams() {
 
         {/* MAIN CONTENT */}
         <section className="flex-1 p-[38px]">
-
           <div className="mb-[34px]">
             <p className="mb-[7px] text-[12px] font-semibold tracking-[1px] text-[#63a8b9]">
               STUDENT EXAMINATIONS
@@ -205,7 +239,6 @@ export default function StudentExams() {
 
           {/* EXAM SUMMARY */}
           <div className="mb-[28px] grid grid-cols-1 gap-[20px] md:grid-cols-3">
-
             <div className="rounded-[20px] border border-[#e8eaf0] bg-white p-[22px]">
               <p className="text-[12px] text-[#8b94a3]">
                 Upcoming Exams
@@ -235,12 +268,10 @@ export default function StudentExams() {
                 {exams.length}
               </h2>
             </div>
-
           </div>
 
           {/* AVAILABLE EXAMS */}
           <div className="rounded-[22px] border border-[#e8eaf0] bg-white p-[26px]">
-
             <div className="mb-[24px]">
               <h2 className="text-[19px] font-bold">
                 Available Exams
@@ -267,67 +298,79 @@ export default function StudentExams() {
               </div>
             ) : (
               <div className="space-y-[16px]">
+                {exams.map((exam) => {
+                  const currentStatus = getCurrentStatus(exam);
 
-                {exams.map((exam) => (
-                  <div
-                    key={exam._id}
-                    className="flex flex-col justify-between gap-[20px] rounded-[18px] border border-[#e9ecf1] p-[22px] lg:flex-row lg:items-center"
-                  >
-                    <div>
-
-                      <div className="flex items-center gap-[12px]">
-                        <h3 className="text-[17px] font-semibold">
-                          {exam.title}
-                        </h3>
-
-                        <span className="rounded-full bg-[#eef8fa] px-[10px] py-[5px] text-[10px] font-semibold text-[#63a8b9]">
-                          {exam.status === "live"
-                            ? "Live"
-                            : "Upcoming"}
-                        </span>
-                      </div>
-
-                      <p className="mt-[8px] text-[13px] text-[#8b94a3]">
-                        {exam.code}
-                        {exam.subject
-                          ? ` • ${exam.subject}`
-                          : ""}
-                      </p>
-
-                      <div className="mt-[15px] flex flex-wrap gap-[20px] text-[13px] text-[#667386]">
-                        <span>
-                          📅 {formatDate(exam.startTime)}
-                        </span>
-
-                        <span>
-                          🕐 {formatTime(exam.startTime)}
-                        </span>
-
-                        <span>
-                          ⏱ {exam.duration} Minutes
-                        </span>
-
-                        <span>
-                          ▣ {exam.totalMarks} Marks
-                        </span>
-                      </div>
-
-                    </div>
-
-                    <Link
-                      href={`/student/exams/${exam._id}`}
-                      className="rounded-[13px] bg-[#63a8b9] px-[22px] py-[12px] text-center text-[13px] font-semibold text-white transition hover:opacity-90"
+                  return (
+                    <div
+                      key={exam._id}
+                      className="flex flex-col justify-between gap-[20px] rounded-[18px] border border-[#e9ecf1] p-[22px] lg:flex-row lg:items-center"
                     >
-                      View Details
-                    </Link>
+                      <div>
+                        <div className="flex items-center gap-[12px]">
+                          <h3 className="text-[17px] font-semibold">
+                            {exam.title}
+                          </h3>
 
-                  </div>
-                ))}
+                          <span
+                            className={`rounded-full px-[10px] py-[5px] text-[10px] font-semibold ${
+                              currentStatus === "live"
+                                ? "bg-[#fff4e5] text-[#b7791f]"
+                                : currentStatus === "completed"
+                                  ? "bg-[#edf8f2] text-[#4e9b6b]"
+                                  : "bg-[#eef8fa] text-[#63a8b9]"
+                            }`}
+                          >
+                            {currentStatus === "live"
+                              ? "Live"
+                              : currentStatus === "completed"
+                                ? "Completed"
+                                : currentStatus === "draft"
+                                  ? "Draft"
+                                  : currentStatus === "unknown"
+                                    ? "Date unavailable"
+                                    : "Upcoming"}
+                          </span>
+                        </div>
 
+                        <p className="mt-[8px] text-[13px] text-[#8b94a3]">
+                          {exam.code}
+                          {exam.subject
+                            ? ` • ${exam.subject}`
+                            : ""}
+                        </p>
+
+                        <div className="mt-[15px] flex flex-wrap gap-[20px] text-[13px] text-[#667386]">
+                          <span>
+                            📅 {formatDate(exam.startTime)}
+                          </span>
+
+                          <span>
+                            🕐 {formatTime(exam.startTime)}
+                          </span>
+
+                          <span>
+                            ⏱ {exam.duration} Minutes
+                          </span>
+
+                          <span>
+                            ▣ {exam.totalMarks} Marks
+                          </span>
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/student/exams/${exam._id}`}
+                        className="rounded-[13px] bg-[#63a8b9] px-[22px] py-[12px] text-center text-[13px] font-semibold text-white transition hover:opacity-90"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
-
         </section>
       </div>
     </main>

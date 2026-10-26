@@ -30,18 +30,27 @@ export class ExamsService {
     });
 
     if (existingExam) {
-      throw new BadRequestException('An exam with this code already exists');
+      throw new BadRequestException(
+        'An exam with this code already exists',
+      );
     }
 
     const startTime = new Date(createExamDto.startTime);
     const endTime = new Date(createExamDto.endTime);
 
-    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
-      throw new BadRequestException('Invalid examination date or time');
+    if (
+      Number.isNaN(startTime.getTime()) ||
+      Number.isNaN(endTime.getTime())
+    ) {
+      throw new BadRequestException(
+        'Invalid examination date or time',
+      );
     }
 
     if (endTime <= startTime) {
-      throw new BadRequestException('End time must be after start time');
+      throw new BadRequestException(
+        'End time must be after start time',
+      );
     }
 
     const exam = new this.examModel({
@@ -62,10 +71,11 @@ export class ExamsService {
       // Admin can see all exams.
       filter = {};
     } else if (user.role === 'student') {
-      // Students can see scheduled and live exams.
+      // Students can retrieve published exams, including completed ones.
+      // The frontend derives the display status from startTime and endTime.
       filter = {
         status: {
-          $in: ['scheduled', 'live'],
+          $in: ['scheduled', 'live', 'completed'],
         },
       };
     } else {
