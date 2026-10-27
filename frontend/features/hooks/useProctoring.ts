@@ -341,15 +341,21 @@ export function useProctoring(
         return;
       }
 
-      const video =
-        videoRef.current;
+      const video = videoRef.current;
 
       if (
-        video.readyState <
-        HTMLMediaElement.HAVE_CURRENT_DATA ||
+        !video ||
+        video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
         video.videoWidth === 0 ||
         video.videoHeight === 0
       ) {
+        // Do not keep displaying a previous successful detection when the
+        // browser is not providing a usable live frame.
+        setFaceStatus("Waiting for live camera frame");
+        setFaceBox(null);
+        setLandmarks([]);
+        setVerificationProgress(0);
+        verificationStartRef.current = null;
         return;
       }
 
@@ -475,22 +481,13 @@ export function useProctoring(
         if (faces.length === 0) {
           setFaceBox(null);
           setLandmarks([]);
-
-          setFaceStatus(
-            "No face detected",
-          );
+          setFaceStatus("No face detected");
+          setVerificationProgress(0);
+          verificationStartRef.current = null;
 
           if (verified) {
-            registerViolation(
-              "NO_FACE",
-              "Face is not visible.",
-            );
+            registerViolation("NO_FACE", "Face is not visible.");
           }
-
-          verificationStartRef.current =
-            null;
-
-          setVerificationProgress(0);
 
           return;
         }
@@ -500,9 +497,10 @@ export function useProctoring(
         // -------------------------------------
 
         if (faces.length > 1) {
-          setFaceStatus(
-            "Multiple faces detected",
-          );
+          // Clear the previous face overlay; it is no longer a valid result.
+          setFaceBox(null);
+          setLandmarks([]);
+          setFaceStatus("Multiple faces detected");
 
           if (verified) {
             registerViolation(
@@ -671,10 +669,14 @@ export function useProctoring(
           }
         }
       } catch (error) {
-        console.error(
-          "[ExamAI] Frame processing error:",
-          error,
-        );
+        console.error("[ExamAI] Frame processing error:", error);
+
+        // Never leave stale "Face detected" UI after an inference failure.
+        setFaceBox(null);
+        setLandmarks([]);
+        setFaceStatus("Face detection unavailable");
+        setVerificationProgress(0);
+        verificationStartRef.current = null;
       } finally {
         detectingRef.current = false;
       }
